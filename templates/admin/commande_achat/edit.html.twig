@@ -1,0 +1,32 @@
+{% extends '@EasyAdmin/crud/edit.html.twig' %}
+
+{# Tu peux aussi personnaliser d'autres blocs si besoin, mais ici on garde la structure de base #}
+
+{% block javascripts %}
+    {{ parent() }}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log("Script auto-prixAchat chargé");
+
+            const produitSelects = document.querySelectorAll('select[id^="CommandeAchat_lignesCommandeAchat_"][id$="_produit"]');
+
+            produitSelects.forEach(function (produitSelect) {
+                produitSelect.addEventListener('change', function () {
+                    const selectedOption = produitSelect.options[produitSelect.selectedIndex];
+                    const prix = selectedOption.getAttribute('data-prix-achat');
+
+                    const idPrixAchat = produitSelect.id.replace('_produit', '_prixAchat');
+                    const prixAchatInput = document.getElementById(idPrixAchat);
+
+                    if (prix && prixAchatInput) {
+                        prixAchatInput.value = prix;
+                        console.log("Prix achat mis à jour:", prix);
+                    }
+                });
+            });
+        });
+    </script>
+    {# Ton fichier JS externe si nécessaire (mais pas obligatoire si le code est déjà ci-dessus) #}
+    <script src="{{ asset('js/auto-prix-achat.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,4 @@
+# config/packages/prod/web_profiler.yaml
+web_profiler:
+    toolbar: false
+    intercept_redirects: false

@@ -1,0 +1,6 @@
+{# templates/admin/fields/html_field.html.twig #}
+{% if field.formattedValue is not empty %}
+    {{ field.formattedValue|raw }}
+{% else %}
+    &nbsp;
+{% endif %}

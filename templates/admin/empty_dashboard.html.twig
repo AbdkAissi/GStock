@@ -1,0 +1,52 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block content %}
+    <h1>📊 Tableau de bord</h1>
+
+    <!-- Conteneur principal pour centrer la grille -->
+    <div style="display: flex; justify-content: center; align-items: center; width: 100%; padding: 200px;">
+        <!-- Grille des cartes avec alignement -->
+        <div style="display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(2000px, 1fr));
+                    gap: 20px;
+                    width: 100%;
+                    justify-content: center;">
+            
+            <!-- Carte Produits -->
+            <div class="card">
+                <h3><i class="fas fa-box me-2"></i> Produits</h3>
+                <p>Total : <strong>{{ totalProduits }}</strong></p>
+                
+            </div>
+
+            <!-- Carte Clients -->
+            <div class="card">
+                <h3><i class="fas fa-users me-2"></i> Clients</h3>
+                <p>Total : <strong>{{ totalClients }}</strong></p>
+            </div>
+
+            <!-- Carte Commandes vente -->
+            <div class="card">
+                <h4><i class="fas fa-shopping-cart me-2"></i> Commandes Vente</h4>
+                <p>Total : <strong>{{ totalCommandesVente }}</strong></p>
+            </div>
+
+            <!-- Carte Commandes achat -->
+            <div class="card">
+                <h4><i class="fas fa-shopping-basket me-2"></i> Commandes Achat</h4>
+                <p>Total : <strong>{{ totalCommandesAchat }}</strong></p>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .card {
+            padding: 1rem;
+            background: #f9f9f9;
+            border-radius: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 300px; /* Limite la largeur des cartes pour les rendre plus visibles */
+        }
+    </style>
+{% endblock %}

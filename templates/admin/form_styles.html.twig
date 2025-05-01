@@ -1,0 +1,43 @@
+{# templates/admin/form_styles.html.twig #}
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        /* Bouton Ajouter une ligne */
+        .custom-lignes-style .ea-action-add-collection-item {
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 10px;
+            padding: 6px 15px;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+
+        .custom-lignes-style .ea-action-add-collection-item:hover {
+            background-color: #45a049;
+        }
+
+        /* Bouton Supprimer une ligne */
+        .custom-lignes-style .ea-action-delete-collection-item {
+            background-color: #e74c3c;
+            color: white;
+            border-radius: 10px;
+            padding: 6px 15px;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+
+        .custom-lignes-style .ea-action-delete-collection-item:hover {
+            background-color: #c0392b;
+        }
+
+        /* Bouton Enregistrer (Submit) */
+        button.btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+            font-weight: bold;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+    </style>
+{% endblock %}

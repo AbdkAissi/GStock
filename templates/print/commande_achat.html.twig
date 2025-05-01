@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Impression Commande d'Achat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            color: #333;
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 25px;
+        }
+        th, td {
+            border: 1px solid #999;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .total {
+            font-weight: bold;
+            text-align: right;
+        }
+        .footer {
+            margin-top: 40px;
+            font-size: 12px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Commande d'Achat</h1>
+    <h2>N° {{ commandeAchat.id }} - {{ commandeAchat.dateCommande|date('d/m/Y') }}</h2>
+
+    <p><strong>Fournisseur :</strong> {{ commandeAchat.fournisseur.nom }}</p>
+    <p><strong>État :</strong> {{ commandeAchat.etat|capitalize }}</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Produit</th>
+                <th>Quantité</th>
+                <th>Prix Unitaire (MAD)</th>
+                <th>Total (MAD)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% set total = 0 %}
+            {% for ligne in commandeAchat.lignesCommandeAchat %}
+                {% set ligneTotal = ligne.quantite * ligne.prixUnitaire %}
+                {% set total = total + ligneTotal %}
+                <tr>
+                    <td>{{ ligne.produit.nom }}</td>
+                    <td>{{ ligne.quantite }}</td>
+                    <td>{{ ligne.prixUnitaire|number_format(2, ',', ' ') }}</td>
+                    <td>{{ ligneTotal|number_format(2, ',', ' ') }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="3" class="total">Total de la commande</td>
+                <td class="total">{{ total|number_format(2, ',', ' ') }} MAD</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="no-print">
+        <button onclick="window.print()">🖨️ Imprimer</button>
+    </div>
+  
+</body>
+</html>

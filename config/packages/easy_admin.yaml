@@ -1,0 +1,23 @@
+easy_admin:
+    entities:
+        CommandeVente:
+            class: App\Entity\CommandeVente
+            label: 'Commande Vente'
+            list:
+                title: 'Commandes Vente'
+                fields:
+                    - id
+                    - dateCommande
+                    - client
+                    - totalCommande
+    design:
+        templates:
+            layout: 'bundles/EasyAdminBundle/layout.html.twig'
+            css:
+                - 'styles/custom_admin.css'
+        assets:
+            js: ['build/easyadmin-ligne-commande.js']  # Utilise l'entrypoint existant
+            css: ['build/easyadmin-ligne-commande.css']
+        list:
+            row_attributes:
+                'data-id': 'id'  # Permet au JS d'accéder à l'ID

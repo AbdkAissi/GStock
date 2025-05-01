@@ -1,0 +1,50 @@
+{# templates/admin/fields/lignes_commande.html.twig #}
+{% block field %}
+    {% set uniqueId = 'cmd-' ~ random() %}
+    {% set typeCommande = field.customOptions.typeCommande|default('vente') %}
+    {% set label = typeCommande == 'achat' ? '📦 Lignes de commande achat' : '🧾 Lignes de commande vente' %}
+
+    {% if field.value is null or field.value|length == 0 %}
+        <div class="text-muted">Aucune ligne de commande</div>
+    {% else %}
+        <div class="accordion" id="accordionLignesCommande{{ uniqueId }}">
+            <div class="accordion-item border border-1 rounded shadow-sm">
+                <h2 class="accordion-header" id="headingLignes{{ uniqueId }}">
+                    <button 
+                        class="accordion-button collapsed bg-light text-dark fw-semibold" 
+                        type="button" 
+                        data-bs-toggle="collapse" 
+                        data-bs-target="#collapseLignes{{ uniqueId }}" 
+                        aria-expanded="false" 
+                        aria-controls="collapseLignes{{ uniqueId }}"
+                    >
+                        {{ label }} ({{ field.value|length }})
+                    </button>
+                </h2>
+                <div 
+                    id="collapseLignes{{ uniqueId }}" 
+                    class="accordion-collapse collapse" 
+                    aria-labelledby="headingLignes{{ uniqueId }}" 
+                    data-bs-parent="#accordionLignesCommande{{ uniqueId }}"
+                >
+                    <div class="accordion-body p-2 bg-white text-dark">
+                        {% for ligne in field.value %}
+                            <div class="list-group-item mb-2 border rounded p-2 bg-light">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ ligne.produit.nom }}</strong><br>
+                                        Quantité : {{ ligne.quantite }}<br>
+                                        Prix unitaire : {{ ligne.prixUnitaire|number_format(2, '.', ' ') }} MAD
+                                    </div>
+                                    <span class="badge bg-success text-white">
+                                        Total : {{ (ligne.quantite * ligne.prixUnitaire)|number_format(2, '.', ' ') }} MAD
+                                    </span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

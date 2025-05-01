@@ -1,0 +1,17 @@
+{% extends '@EasyAdmin/layout.html.twig' %}
+
+{% block content %}
+    <h1>Tableau de Bord</h1>
+    
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h3>{{ stats.produits }}</h3>
+                    <p>Produits en stock</p>
+                </div>
+            </div>
+        </div>
+        <!-- Répétez pour les autres statistiques -->
+    </div>
+{% endblock %}

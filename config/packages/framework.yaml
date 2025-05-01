@@ -1,12 +1,24 @@
-# see https://symfony.com/doc/current/reference/configuration/framework.html
 framework:
     secret: '%env(APP_SECRET)%'
 
-    # Note that the session will be started ONLY if you read or write from it.
-    session: true
+    # Configuration des sessions
+    session:
+        handler_id: null
+        cookie_secure: auto
+        cookie_samesite: lax
+        storage_factory_id: session.storage.factory.native
 
-    #esi: true
-    #fragments: true
+    # Autres configurations du framework
+    csrf_protection: true
+    http_method_override: true
+    fragments: true
+    validation:
+        enable_attributes: true  # Activer la validation via les attributs
+    default_locale: 'fr'
+
+    # Configuration des assets pour Webpack Encore
+    assets:
+        json_manifest_path: '%kernel.project_dir%/public/build/manifest.json'  # Référence au manifest.json généré par Webpack Encore
 
 when@test:
     framework:

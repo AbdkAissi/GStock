@@ -1,0 +1,6 @@
+{% set html = entity.instance.getLignesCommandeAffichage() %}
+{% if html is empty %}
+    <em>Aucune ligne</em>
+{% else %}
+    {{ html|raw }}
+{% endif %}

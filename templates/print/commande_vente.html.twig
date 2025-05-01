@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Commande Vente n°{{ commande.id }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { text-align: center; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 8px; border: 1px solid #ccc; text-align: left; }
+        .total { font-weight: bold; text-align: right; }
+        .no-print { margin-top: 20px; }
+        @media print {
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Commande Vente n°{{ commande.id }}</h1>
+        <p>Date : {{ commande.dateCommande|date('d/m/Y H:i') }}</p>
+        <p>Client : {{ commande.client.nom }}</p>
+        <p>État : {{ commande.etat }}</p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Produit</th>
+                <th>Quantité</th>
+                <th>Prix unitaire</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ligne in commande.lignesCommandeVente %}
+                <tr>
+                    <td>{{ ligne.produit.nom }}</td>
+                    <td>{{ ligne.quantite }}</td>
+                    <td>{{ ligne.prixUnitaire }} MAD</td>
+                    <td>{{ (ligne.prixUnitaire * ligne.quantite)|number_format(2, ',', ' ') }} MAD</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="3" class="total">Total de la commande</td>
+                <td>{{ commande.totalCommande|number_format(2, ',', ' ') }} MAD</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="no-print">
+        <button onclick="window.print()">🖨️ Imprimer</button>
+    </div>
+   
+</body>
+</html>

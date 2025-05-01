@@ -1,0 +1,5 @@
+# config/routes/easy_admin.yaml
+admin:
+    resource: 'App\Controller\Admin\DashboardController'
+    prefix: /admin
+    defaults: { _locale: 'fr' }
