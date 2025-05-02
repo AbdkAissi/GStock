@@ -20,6 +20,7 @@ use App\Repository\CommandeAchatRepository;
 
 class DashboardController extends AbstractDashboardController
 {
+    // Injection des repositories nécessaires pour accéder aux données depuis la base
     public function __construct(
         private ProduitRepository $produitRepository,
         private ClientRepository $clientRepository,
@@ -27,14 +28,17 @@ class DashboardController extends AbstractDashboardController
         private CommandeAchatRepository $commandeAchatRepository
     ) {}
 
+    // Route principale de l'admin : /admin
     #[Route('/admin', name: 'app_dashboard')]
     public function index(): Response
     {
+        // Récupération du nombre total de produits, clients, commandes de vente et commandes d'achat
         $produitsCount = $this->produitRepository->count([]);
         $clientsCount = $this->clientRepository->count([]);
         $commandesvCount = $this->commandeVenteRepository->count([]);
         $commandesaCount = $this->commandeAchatRepository->count([]);
 
+        // Affichage du tableau de bord avec les statistiques dans un template Twig
         return $this->render('admin/empty_dashboard.html.twig', [
             'totalProduits' => $produitsCount,
             'totalClients' => $clientsCount,
@@ -43,33 +47,41 @@ class DashboardController extends AbstractDashboardController
         ]);
     }
 
+    // Configuration générale du tableau de bord (titre, favicon)
     public function configureDashboard(): Dashboard
     {
         return Dashboard::new()
-            ->setTitle('<i class="fas fa-warehouse"></i> Gestion de Stock')
-            ->setFaviconPath('favicon.ico');
+            ->setTitle('<i class="fas fa-warehouse"></i> Gestion de Stock') // Titre affiché dans l’admin
+            ->setFaviconPath('favicon.ico'); // Icône de l’onglet navigateur
     }
 
+    // Configuration du menu de navigation dans l'interface EasyAdmin
     public function configureMenuItems(): iterable
     {
+        // Lien vers le tableau de bord principal
         yield MenuItem::linkToDashboard('Dashboard', 'fa fa-home');
 
-        yield MenuItem::section('Gestion Commerciale');
-        yield MenuItem::linkToCrud('Produits', 'fas fa-box', Produit::class);
-        yield MenuItem::linkToCrud('Clients', 'fas fa-users', Client::class);
+        // Sous-menu pour la partie commerciale : Produits et Clients
+        yield MenuItem::subMenu('Gestion Commerciale', 'fas fa-bars')->setSubItems([
+            MenuItem::linkToCrud('Produits', 'fas fa-box', Produit::class),
+            MenuItem::linkToCrud('Clients', 'fas fa-users', Client::class),
+        ]);
 
-        yield MenuItem::section('Gestion Logistique');
-        yield MenuItem::linkToCrud('Fournisseurs', 'fas fa-truck', Fournisseur::class);
-        yield MenuItem::linkToCrud('Commandes Achat', 'fas fa-shopping-cart', CommandeAchat::class);
-        yield MenuItem::linkToCrud('Commandes Vente', 'fas fa-cash-register', CommandeVente::class);
+        // Sous-menu pour la logistique : Fournisseurs, Commandes d’achat et de vente
+        yield MenuItem::subMenu('Gestion Logistique', 'fas fa-bars')->setSubItems([
+            MenuItem::linkToCrud('Fournisseurs', 'fas fa-truck', Fournisseur::class),
+            MenuItem::linkToCrud('Commandes Achat', 'fas fa-shopping-cart', CommandeAchat::class),
+            MenuItem::linkToCrud('Commandes Vente', 'fas fa-cash-register', CommandeVente::class),
+        ]);
     }
 
+    // Ajout de fichiers JS et CSS personnalisés pour l'administration
     public function configureAssets(): Assets
     {
         return parent::configureAssets()
-            ->addWebpackEncoreEntry('admin')
-            ->addJsFile('js/auto-prix-vente.js')
-            ->addJsFile('js/auto-prix-achat.js')
-            ->addCssFile('css/admin.css');
+            ->addWebpackEncoreEntry('admin') // Entrée Webpack principale pour l’admin
+            ->addJsFile('js/auto-prix-vente.js') // Script JS pour remplir automatiquement le prix de vente
+            ->addJsFile('js/auto-prix-achat.js') // Script JS pour remplir automatiquement le prix d'achat
+            ->addCssFile('css/admin.css'); // Fichier CSS personnalisé pour l’interface admin
     }
 }
