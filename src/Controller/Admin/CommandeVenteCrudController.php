@@ -20,26 +20,29 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 class CommandeVenteCrudController extends AbstractCrudController
 {
     private EntityManagerInterface $entityManager;
-    private UrlGeneratorInterface $urlGenerator;
+    private UrlGeneratorInterface $symfonyUrlGenerator;
+    private AdminUrlGenerator $adminUrlGenerator;
     private CommandeVenteManager $commandeVenteManager;
     private StockManager $stockManager;
-    public function __construct(
 
+    public function __construct(
         EntityManagerInterface $entityManager,
         StockManager $stockManager,
-        UrlGeneratorInterface $urlGenerator,
+        UrlGeneratorInterface $symfonyUrlGenerator,
+        AdminUrlGenerator $adminUrlGenerator,
         CommandeVenteManager $commandeVenteManager
     ) {
-        $this->stockManager = $stockManager;
         $this->entityManager = $entityManager;
-        $this->urlGenerator = $urlGenerator;
+        $this->stockManager = $stockManager;
+        $this->symfonyUrlGenerator = $symfonyUrlGenerator;
+        $this->adminUrlGenerator = $adminUrlGenerator;
         $this->commandeVenteManager = $commandeVenteManager;
-        //dd($this->stockManager); // Ajoute ça pour tester
     }
 
     public static function getEntityFqcn(): string
@@ -49,9 +52,15 @@ class CommandeVenteCrudController extends AbstractCrudController
 
     public function configureAssets(Assets $assets): Assets
     {
-        return parent::configureAssets($assets)
-            ->addJsFile('build/app.js');
+        // Solution 1: Ne rien ajouter si vous voulez supprimer des assets
+        return $assets;
+
+        // OU Solution 2: Ajouter uniquement les assets nécessaires
+        // return $assets
+        //     ->addWebpackEncoreEntry('app') // Seulement les assets vraiment nécessaires
+        //     ->addJsFile('js/paiement.js');
     }
+
 
     public function configureCrud(Crud $crud): Crud
     {
@@ -106,18 +115,24 @@ class CommandeVenteCrudController extends AbstractCrudController
         $valider = Action::new('validerCommande', 'Valider', 'fa fa-check')
             ->linkToCrudAction('validerCommande')
             ->setCssClass('btn btn-success')
-            ->displayIf(fn($entity) => in_array($entity->getEtat(), ['en_attente', 'annulee']));
+            ->displayIf(fn($entity) => $entity->getEtat() === 'en_attente'); // Ne s'affiche que pour les commandes en attente
+
+        $annuler = Action::new('annulerCommande', 'Annuler', 'fa fa-times')
+            ->linkToCrudAction('annulerCommande')
+            ->setCssClass('btn btn-danger')
+            ->displayIf(fn($entity) => $entity->getEtat() !== 'annulee'); // Ne s'affiche pas pour les commandes déjà annulées
 
         $imprimer = Action::new('imprimer', 'Imprimer', 'fa fa-print')
             ->linkToUrl(
                 fn(CommandeVente $entity) =>
-                $this->urlGenerator->generate('commande_vente_imprimer', ['id' => $entity->getId()])
+                $this->symfonyUrlGenerator->generate('commande_vente_imprimer', ['id' => $entity->getId()])
             )
             ->setCssClass('btn btn-secondary')
             ->setHtmlAttributes(['target' => '_blank']);
 
         return $actions
             ->add(Crud::PAGE_DETAIL, $valider)
+            ->add(Crud::PAGE_DETAIL, $annuler)
             ->add(Crud::PAGE_DETAIL, $imprimer)
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->update(
@@ -132,6 +147,33 @@ class CommandeVenteCrudController extends AbstractCrudController
                 fn(Action $action) =>
                 $action->displayIf(fn($entity) => $entity->getEtat() !== 'annulee')
             );
+    }
+
+    public function annulerCommande(AdminContext $context): RedirectResponse
+    {
+        $commande = $context->getEntity()->getInstance();
+        dump("État avant annulation :", $commande->getEtat());
+
+        if (!$commande instanceof CommandeVente) {
+            $this->addFlash('danger', 'Commande invalide.');
+            return $this->redirectToReferrer($context);
+        }
+
+        if ($commande->getEtat() === 'annulee') {
+            $this->addFlash('warning', 'La commande est déjà annulée.');
+            return $this->redirectToReferrer($context);
+        }
+
+        // Si la commande était déjà validée, restaurer le stock
+        if ($commande->getEtat() === 'receptionnee') {
+            $this->commandeVenteManager->restaurerStock($commande);
+        }
+
+        $commande->setEtat('annulee');
+        $this->entityManager->flush();
+
+        $this->addFlash('success', 'Commande annulée avec succès. Le stock a été mis à jour si nécessaire.');
+        return $this->redirectToReferrer($context);
     }
 
     public function persistEntity(EntityManagerInterface $em, $entityInstance): void
@@ -151,24 +193,93 @@ class CommandeVenteCrudController extends AbstractCrudController
         parent::persistEntity($em, $entityInstance);
     }
 
-    public function updateEntity(EntityManagerInterface $em, $entityInstance): void
+    public function updateEntity(EntityManagerInterface $entityManager, $entityInstance): void
     {
         if (!$entityInstance instanceof CommandeVente) {
             return;
         }
 
-        $ancienneCommande = $this->entityManager->getUnitOfWork()->getOriginalEntityData($entityInstance);
-        $ancienEtat = $ancienneCommande['etat'] ?? null;
-        $nouvelEtat = $entityInstance->getEtat();
+        // Récupération de l'état original avant modification
+        $uow = $entityManager->getUnitOfWork();
+        $uow->computeChangeSets();
+        $originalData = $uow->getOriginalEntityData($entityInstance);
 
-        if ($ancienEtat === 'réceptionnée' && $nouvelEtat === 'annulee') {
-            $this->commandeVenteManager->restaurerStock($entityInstance);
-            $this->addFlash('info', 'Stock restauré pour la commande.');
+        // Récupération de la commande originale depuis la base
+        $commandeOriginal = $entityManager->getRepository(CommandeVente::class)
+            ->find($entityInstance->getId());
+
+        $etaitValidee = $commandeOriginal->isValidee();
+        $estValidee = $entityInstance->isValidee();
+
+        // Gestion spécifique pour les commandes réceptionnées modifiées
+        if ($etaitValidee) {
+            $this->gererModificationStock($commandeOriginal, $entityInstance);
         }
 
-        parent::updateEntity($em, $entityInstance);
-    }
+        // Appliquer les modifications
+        parent::updateEntity($entityManager, $entityInstance);
 
+        // Gestion des nouvelles validations
+        if (!$etaitValidee && $estValidee) {
+            $this->stockManager->ajusterCommandeVente($entityInstance);
+        }
+    }
+    private function gererModificationStock(CommandeVente $ancienneCommande, CommandeVente $nouvelleCommande): void
+    {
+        $entityManager = $this->entityManager;
+
+        // Détection des changements
+        $uow = $entityManager->getUnitOfWork();
+        $uow->computeChangeSets();
+
+        // Pour chaque ligne de la nouvelle commande
+        foreach ($nouvelleCommande->getLignesCommandeVente() as $ligne) {
+            $changeSet = $uow->getEntityChangeSet($ligne);
+
+            // Si la quantité a été modifiée
+            if (isset($changeSet['quantite'])) {
+                $ancienneQuantite = $changeSet['quantite'][0];
+                $nouvelleQuantite = $changeSet['quantite'][1];
+                $difference = $nouvelleQuantite - $ancienneQuantite;
+
+                if ($difference !== 0) {
+                    try {
+                        $this->stockManager->ajusterStock(
+                            $ligne->getProduit(),
+                            abs($difference),
+                            'vente',
+                            $difference < 0
+                        );
+                    } catch (\LogicException $e) {
+                        // Gérer l'erreur de stock insuffisant
+                        throw new \RuntimeException(
+                            sprintf('Impossible de modifier la commande: %s', $e->getMessage())
+                        );
+                    }
+                }
+            }
+        }
+
+        // Gestion des lignes supprimées
+        $originalLignes = $ancienneCommande->getLignesCommandeVente()->toArray();
+        $nouvellesLignes = $nouvelleCommande->getLignesCommandeVente()->toArray();
+
+        $lignesSupprimees = array_udiff(
+            $originalLignes,
+            $nouvellesLignes,
+            function ($a, $b) {
+                return $a->getId() - $b->getId();
+            }
+        );
+
+        foreach ($lignesSupprimees as $ligne) {
+            $this->stockManager->restaurerStock(
+                $ligne->getProduit(),
+                $ligne->getQuantite(),
+                'vente'
+            );
+        }
+    }
     public function validerCommande(AdminContext $context): RedirectResponse
     {
         $commande = $context->getEntity()->getInstance();
@@ -182,11 +293,13 @@ class CommandeVenteCrudController extends AbstractCrudController
             $this->addFlash('warning', 'La commande est déjà réceptionnée.');
             return $this->redirectToReferrer($context);
         }
+        if ($commande->getEtat() === 'annulee') {
+            $this->addFlash('danger', 'Une commande annulée ne peut pas être validée.');
+            return $this->redirectToReferrer($context);
+        }
 
-        // 🟰 ON AJOUTE ICI
         $etatAvantValidation = $commande->getEtat();
 
-        // Vérification du stock
         foreach ($commande->getLignesCommandeVente() as $ligne) {
             $produit = $ligne->getProduit();
             $quantiteDemandee = $ligne->getQuantite();
@@ -214,18 +327,17 @@ class CommandeVenteCrudController extends AbstractCrudController
 
         $this->entityManager->flush();
 
-        // ✅ MESSAGE SPÉCIAL
         if ($etatAvantValidation === 'annulee') {
             $this->addFlash('info', 'Commande annulée revalidée avec succès et stock mis à jour.');
         } else {
             $this->addFlash('success', 'Commande validée et stock mis à jour.');
         }
 
-        $url = $this->urlGenerator->generate('admin', [
-            'crudAction' => 'detail',
-            'crudControllerFqcn' => CommandeVenteCrudController::class,
-            'entityId' => $commande->getId(),
-        ]);
+        $url = $this->adminUrlGenerator
+            ->setController(self::class)
+            ->setAction('detail')
+            ->setEntityId($commande->getId())
+            ->generateUrl();
 
         return $this->redirect($url);
     }
@@ -235,10 +347,10 @@ class CommandeVenteCrudController extends AbstractCrudController
         $referrer = $context->getReferrer();
 
         if (!$referrer) {
-            $referrer = $this->urlGenerator->generate('admin', [
-                'crudAction' => 'index',
-                'crudControllerFqcn' => self::class,
-            ]);
+            $referrer = $this->adminUrlGenerator
+                ->setController(self::class)
+                ->setAction('index')
+                ->generateUrl();
         }
 
         return $this->redirect($referrer);

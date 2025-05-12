@@ -16,7 +16,9 @@ easy_admin:
             css:
                 - 'styles/custom_admin.css'
         assets:
-            js: ['build/easyadmin-ligne-commande.js']  # Utilise l'entrypoint existant
+            js: 
+               - 'build/paiement.js'
+               - ['build/easyadmin-ligne-commande.js']  # Utilise l'entrypoint existant
             css: ['build/easyadmin-ligne-commande.css']
         list:
             row_attributes:

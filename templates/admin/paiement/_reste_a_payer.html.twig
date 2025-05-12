@@ -1,0 +1,6 @@
+{# templates/admin/paiement/_reste_a_payer.html.twig #}
+{% if resteAPayer is not null %}
+<div class="alert alert-info mt-3">
+    <strong>Reste à payer: {{ resteAPayer|format_currency('MAD') }}</strong>
+</div>
+{% endif %}

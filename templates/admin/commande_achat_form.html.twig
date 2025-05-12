@@ -12,9 +12,15 @@
         </div>
     </form>
 {% endblock %}
+{% block stylesheets %}
+    {{ parent() }}
+    {{ encore_entry_link_tags('admin') }}
+{% endblock %}
 
 {% block javascripts %}
     {{ parent() }}
+    {{ encore_entry_script_tags('app') }}
+    {{ encore_entry_script_tags('admin') }}
     <!-- Importer Select2 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
@@ -46,6 +52,7 @@
 
                 // Si un produit est sélectionné
                 if (produitId) {
+                    console.log(produitId)
                     // Faire une requête AJAX pour obtenir les prix du produit sélectionné
                     fetch(`/produit/${produitId}/prix`)
                         .then(response => response.json())

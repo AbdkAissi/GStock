@@ -1,0 +1,46 @@
+<?php
+
+namespace App\Service;
+
+use App\Entity\Client;
+use App\Entity\Fournisseur;
+use Doctrine\ORM\EntityManagerInterface;
+
+class PaiementManager
+{
+    public function __construct(private EntityManagerInterface $em) {}
+
+    public function calculerSoldeClient(Client $client): float
+    {
+        $totalCommandes = array_reduce(
+            $client->getCommandesVente()->toArray(),
+            fn($carry, $commande) => $carry + $commande->getTotalCommande(),
+            0
+        );
+
+        $totalPaiements = array_reduce(
+            $client->getPaiements()->toArray(),
+            fn($carry, $paiement) => $carry + $paiement->getMontant(),
+            0
+        );
+
+        return $totalPaiements - $totalCommandes;
+    }
+
+    public function calculerSoldeFournisseur(Fournisseur $fournisseur): float
+    {
+        $totalCommandes = array_reduce(
+            $fournisseur->getCommandesAchat()->toArray(),
+            fn($carry, $commande) => $carry + $commande->getTotalCommande(),
+            0
+        );
+
+        $totalPaiements = array_reduce(
+            $fournisseur->getPaiements()->toArray(),
+            fn($carry, $paiement) => $carry + $paiement->getMontant(),
+            0
+        );
+
+        return $totalPaiements - $totalCommandes;
+    }
+}

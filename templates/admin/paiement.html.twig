@@ -1,0 +1,44 @@
+{# templates/admin/paiement.html.twig #}
+{% extends '@EasyAdmin/crud/detail.html.twig' %}
+
+{% block body_javascript %}
+    {{ parent() }}
+    <script>
+        if (document.querySelector('.paiement-form')) {
+            const script = document.createElement('script');
+            script.src = "{{ asset('js/paiement.js') }}";
+            script.defer = true;
+            document.body.appendChild(script);
+        }
+        
+        // Script pour le résumé des paiements
+        document.addEventListener('DOMContentLoaded', function() {
+            const filterInput = document.createElement('input');
+            filterInput.type = 'text';
+            filterInput.className = 'form-control mb-3';
+            filterInput.placeholder = 'Filtrer les paiements...';
+            filterInput.id = 'filterPaiements';
+            
+            const resumeSection = document.querySelector('.paiement-resume');
+            if (resumeSection) {
+                resumeSection.insertBefore(filterInput, resumeSection.firstChild);
+                
+                filterInput.addEventListener('input', function(e) {
+                    const term = e.target.value.toLowerCase();
+                    document.querySelectorAll('.paiement-resume tbody tr').forEach(row => {
+                        row.style.display = row.textContent.toLowerCase().includes(term) ? '' : 'none';
+                    });
+                });
+            }
+        });
+    </script>
+{% endblock %}
+
+{% block content_title %}
+    {{ parent() }}
+    {% if entity.instance %}
+        <div class="mt-3">
+            {{ include('admin/paiement/_resume.html.twig', { paiement: entity.instance }) }}
+        </div>
+    {% endif %}
+{% endblock %}

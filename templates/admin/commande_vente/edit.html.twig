@@ -1,36 +1,19 @@
+{% extends '@EasyAdmin/crud/edit.html.twig' %}
+
+{# Inclusion des fichiers CSS compilés par Webpack Encore #}
+{% block stylesheets %}
+    {{ parent() }}
+    {{ encore_entry_link_tags('admin') }}
+{% endblock %}
+
+{# Inclusion des fichiers JS + script personnalisé #}
 {% block javascripts %}
-    
-    
-    {# Ton script en ligne (debug ou logique custom) #}
-    <script>
-        console.log("JS chargé");
+    {{ parent() }}
+    {{ encore_entry_script_tags('auto-prix-vente') }}   
+{% endblock %}
 
-        document.addEventListener('DOMContentLoaded', function () {
-            console.log("DOM chargé");
-
-            const produitSelects = document.querySelectorAll('select[id^="CommandeVente_lignesCommandeVente_"][id$="_produit"]');
-            console.log("produitSelects:", produitSelects);  // Vérifie que les selects sont bien récupérés
-
-            produitSelects.forEach(function (produitSelect) {
-                produitSelect.addEventListener('change', function () {
-                    console.log("Produit sélectionné:", produitSelect);
-                    const selectedOption = produitSelect.options[produitSelect.selectedIndex];
-                    const prix = selectedOption.getAttribute('data-prix');
-                    console.log("Prix sélectionné:", prix);
-
-                    const idPrixVente = produitSelect.id.replace('_produit', '_prixVente');
-                    const prixVenteInput = document.getElementById(idPrixVente);
-                    console.log("prixVenteInput trouvé:", prixVenteInput);
-
-                    if (prix && prixVenteInput) {
-                        prixVenteInput.value = prix;
-                        console.log("Prix de vente mis à jour:", prix);
-                    }
-                });
-            });
-        });
-    </script>
-
-    {# Ton fichier JS externe si nécessaire (mais pas obligatoire si le code est déjà ci-dessus) #}
-    <script src="{{ asset('js/auto-prix-vente.js') }}"></script>
+{# Affichage du total général dans la section principale #}
+{% block main %}
+    {{ parent() }}
+    {% include 'admin/components/total_general.html.twig' %}
 {% endblock %}

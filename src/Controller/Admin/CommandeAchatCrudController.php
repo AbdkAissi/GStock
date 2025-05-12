@@ -4,34 +4,37 @@ namespace App\Controller\Admin;
 
 use App\Entity\CommandeAchat;
 use App\Form\LigneCommandeAchatType;
-use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
+use App\Service\StockManager;
+use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
-use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\DateField;
+use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Doctrine\ORM\EntityManagerInterface;
-use App\Service\StockManager;
-use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
-use Symfony\Component\HttpFoundation\RedirectResponse;
+use EasyCorp\Bundle\EasyAdminBundle\Field\DateField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
-use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
+use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
+use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
+use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 class CommandeAchatCrudController extends AbstractCrudController
 {
-    private StockManager $stockManager;
     private EntityManagerInterface $entityManager;
-    private UrlGeneratorInterface $urlGenerator;
+    private AdminUrlGenerator $adminUrlGenerator;
+    private StockManager $stockManager;
 
-    public function __construct(StockManager $stockManager, EntityManagerInterface $entityManager, UrlGeneratorInterface $urlGenerator)
-    {
-        $this->stockManager = $stockManager;
+    public function __construct(
+        EntityManagerInterface $entityManager,
+        AdminUrlGenerator $adminUrlGenerator,
+        StockManager $stockManager
+    ) {
         $this->entityManager = $entityManager;
-        $this->urlGenerator = $urlGenerator;
+        $this->adminUrlGenerator = $adminUrlGenerator;
+        $this->stockManager = $stockManager;
     }
 
     public static function getEntityFqcn(): string
@@ -39,86 +42,83 @@ class CommandeAchatCrudController extends AbstractCrudController
         return CommandeAchat::class;
     }
 
-    public function configureActions(Actions $actions): Actions
+    public function configureAssets(Assets $assets): Assets
     {
-        $valider = Action::new('validerCommande', 'Valider', 'fa fa-check')
-            ->linkToCrudAction('validerCommande')
-            ->setCssClass('btn btn-success')
-            ->displayIf(fn($entity) => $entity->getEtat() !== 'réceptionnée');
-
-        $imprimer = Action::new('imprimer', 'Imprimer', 'fa fa-print')
-            ->linkToUrl(function (CommandeAchat $entity) {
-                return $this->urlGenerator->generate('commande_achat_imprimer', ['id' => $entity->getId()]);
-            })
-            ->setCssClass('btn btn-secondary')
-            ->setHtmlAttributes(['target' => '_blank']);
-
-        return $actions
-            ->add(Crud::PAGE_INDEX, Action::DETAIL)
-            ->add(Crud::PAGE_DETAIL, $valider)
-            ->add(Crud::PAGE_INDEX, $valider)
-            ->add(Crud::PAGE_DETAIL, $imprimer);
+        return parent::configureAssets($assets)
+            ->addWebpackEncoreEntry('auto-prix-achat');
     }
 
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
-            ->setEntityLabelInSingular('Commande d\'achat')
-            ->setEntityLabelInPlural('Commandes d\'achat')
-            ->setPageTitle(Crud::PAGE_INDEX, 'Liste des commandes d\'achat')
-            ->setPageTitle(Crud::PAGE_NEW, 'Créer une commande d\'achat')
-            ->setPageTitle(Crud::PAGE_EDIT, 'Modifier une commande d\'achat')
+            ->setEntityLabelInSingular('Commande achat')
+            ->setEntityLabelInPlural('Commandes achat')
+            ->setPageTitle(Crud::PAGE_INDEX, 'Liste des commandes achat')
+            ->setPageTitle(Crud::PAGE_NEW, 'Créer une commande achat')
+            ->setPageTitle(Crud::PAGE_EDIT, 'Modifier une commande achat')
             ->setFormThemes([
                 '@EasyAdmin/crud/form_theme.html.twig',
-                'admin/commande_achat/edit.html.twig', // ← ton template personnalisé
+                'admin/commande_achat/edit.html.twig',
             ])
             ->setPageTitle(Crud::PAGE_DETAIL, fn($entity) => 'Détails de la commande #' . $entity->getId());
     }
 
-    public function validerCommande(AdminContext $context): RedirectResponse
+    public function configureFields(string $pageName): iterable
     {
-        // 🔵 Récupération de l'entité CommandeAchat depuis le contexte EasyAdmin
-        $commande = $context->getEntity()->getInstance();
-
-        // 🟡 Si la commande n'est pas encore réceptionnée
-        if ($commande->getEtat() !== 'réceptionnée') {
-            // ✅ On change son état en "réceptionnée"
-            $commande->setEtat('réceptionnée');
-
-            // 🔄 Pour chaque ligne de commande associée
-            foreach ($commande->getLignesCommandeAchat() as $ligne) {
-                // 🔵 Si la ligne n'a pas encore de lien avec la commande (sécurité supplémentaire)
-                if ($ligne->getCommandeAchat() === null) {
-                    // ➡️ On l'associe à la commande en cours
-                    $ligne->setCommandeAchat($commande);
-                }
-
-                // ✅ On ajuste le stock pour le produit de la ligne (opération d'**achat**)
-                $this->stockManager->ajusterStock(
-                    $ligne->getProduit(),  // Le produit concerné
-                    $ligne->getQuantite(), // Quantité achetée
-                    'achat'                // Type d'opération : ici c'est un achat
-                );
-            }
-
-            // 💾 On enregistre toutes les modifications dans la base de données
-            $this->entityManager->flush();
-
-            // 🎉 On affiche un message de succès
-            $this->addFlash('success', 'Commande validée et stock mis à jour.');
-        }
-
-        // 🔵 Génération de l'URL pour rediriger vers la page de détails de la commande
-        $url = $this->urlGenerator->generate('admin', [
-            'crudAction' => 'detail',                     // Action EasyAdmin : afficher le détail
-            'crudControllerFqcn' => get_class($this),      // Contrôleur actuel
-            'entityId' => $commande->getId(),              // ID de la commande
-        ]);
-
-        // 🔙 Redirection vers la page de détail de la commande
-        return $this->redirect($url);
+        return [
+            IdField::new('id')->hideOnForm(),
+            DateField::new('dateCommande', 'Date commande')->setFormat('dd/MM/yyyy HH:mm'),
+            ChoiceField::new('etat', 'État')
+                ->setChoices([
+                    'En attente' => 'en_attente',
+                    'Réceptionnée' => 'receptionnee',
+                    'Annulée' => 'annulee',
+                ])
+                ->renderAsBadges([
+                    'en_attente' => 'warning',
+                    'receptionnee' => 'success',
+                    'annulee' => 'danger',
+                ]),
+            Field::new('totalCommande', 'Total de la commande')
+                ->onlyOnDetail()
+                ->formatValue(fn($value, $entity) => number_format($entity->getTotalCommande(), 2, ',', ' ') . ' MAD'),
+            AssociationField::new('fournisseur')
+                ->setFormTypeOption('choice_label', 'nom'),
+            CollectionField::new('lignesCommandeAchat', 'Lignes de commande')
+                ->setEntryType(LigneCommandeAchatType::class)
+                ->allowAdd()
+                ->allowDelete()
+                ->renderExpanded()
+                ->setFormTypeOption('by_reference', false)
+                ->setFormTypeOption('prototype_name', '__ligne_idx__')
+                ->setTemplatePath('admin/fields/lignes_commande.html.twig')
+                ->setEntryIsComplex(true),
+        ];
     }
 
+    public function configureActions(Actions $actions): Actions
+    {
+        $valider = Action::new('validerCommande', 'Valider', 'fa fa-check')
+            ->linkToCrudAction('validerCommande')
+            ->setCssClass('btn btn-success')
+            ->displayIf(fn($entity) => in_array($entity->getEtat(), ['en_attente', 'annulee']));
+
+        return $actions
+            ->add(Crud::PAGE_DETAIL, $valider)
+            ->add(Crud::PAGE_INDEX, Action::DETAIL)
+            ->update(
+                Crud::PAGE_INDEX,
+                Action::EDIT,
+                fn(Action $action) =>
+                $action->displayIf(fn($entity) => $entity->getEtat() !== 'annulee')
+            )
+            ->update(
+                Crud::PAGE_DETAIL,
+                Action::EDIT,
+                fn(Action $action) =>
+                $action->displayIf(fn($entity) => $entity->getEtat() !== 'annulee')
+            );
+    }
 
     public function persistEntity(EntityManagerInterface $em, $entityInstance): void
     {
@@ -126,14 +126,17 @@ class CommandeAchatCrudController extends AbstractCrudController
             return;
         }
 
-        foreach ($entityInstance->getLignesCommandeAchat() as $ligne) {
-            if ($ligne->getCommandeAchat() === null) {
-                $ligne->setCommandeAchat($entityInstance);
-            }
+        if ($entityInstance->getDateCommande() === null) {
+            $entityInstance->setDateCommande(new \DateTimeImmutable());
+        }
 
-            // Mise à jour du stock uniquement si l'état est déjà "réceptionnée"
-            if ($entityInstance->getEtat() === 'réceptionnée') {
-                $this->stockManager->ajusterStock($ligne->getProduit(), $ligne->getQuantite(), 'achat');
+        if ($entityInstance->getEtat() === 'receptionnee') {
+            foreach ($entityInstance->getLignesCommandeAchat() as $ligne) {
+                $this->stockManager->ajusterStock(
+                    $ligne->getProduit(),
+                    $ligne->getQuantite(),
+                    'achat'
+                );
             }
         }
 
@@ -146,58 +149,74 @@ class CommandeAchatCrudController extends AbstractCrudController
             return;
         }
 
-        foreach ($entityInstance->getLignesCommandeAchat() as $ligne) {
-            if ($ligne->getCommandeAchat() === null) {
-                $ligne->setCommandeAchat($entityInstance);
-            }
+        $ancienneCommande = $this->entityManager->getUnitOfWork()->getOriginalEntityData($entityInstance);
+        $ancienEtat = $ancienneCommande['etat'] ?? null;
+        $nouvelEtat = $entityInstance->getEtat();
 
-            // Mise à jour du stock uniquement si l'état est déjà "réceptionnée"
-            if ($entityInstance->getEtat() === 'réceptionnée') {
-                $this->stockManager->ajusterStock($ligne->getProduit(), $ligne->getQuantite(), 'achat');
+        if ($ancienEtat === 'receptionnee' && $nouvelEtat === 'annulee') {
+            foreach ($entityInstance->getLignesCommandeAchat() as $ligne) {
+                $this->stockManager->restaurerStock(
+                    $ligne->getProduit(),
+                    $ligne->getQuantite(),
+                    'achat'
+                );
             }
+            $this->addFlash('info', 'Stock restauré pour la commande.');
         }
 
         parent::updateEntity($em, $entityInstance);
     }
 
-    public function configureFields(string $pageName): iterable
+    public function validerCommande(AdminContext $context): RedirectResponse
     {
-        return [
-            IdField::new('id')->hideOnForm(),
-            DateField::new('dateCommande')->setFormat('dd/MM/yyyy'),
+        $commande = $context->getEntity()->getInstance();
 
-            ChoiceField::new('etat', 'État')
-                ->setChoices([
-                    'En attente' => 'en_attente',
-                    'Réceptionnée' => 'réceptionnée',
-                    'Annulée' => 'annulee',
-                ])
-                ->renderAsBadges([
-                    'en_attente' => 'warning',
-                    'réceptionnée' => 'success',
-                    'annulee' => 'danger',
-                ]),
+        if (!$commande instanceof CommandeAchat) {
+            $this->addFlash('danger', 'Commande invalide.');
+            return $this->redirectToReferrer($context);
+        }
 
-            Field::new('totalCommande', 'Total de la commande')
-                ->onlyOnDetail()
-                ->formatValue(function ($value, $entity) {
-                    return number_format($entity->getTotalCommande(), 2, ',', ' ') . ' MAD';
-                }),
+        if ($commande->getEtat() === 'receptionnee') {
+            $this->addFlash('warning', 'La commande est déjà réceptionnée.');
+            return $this->redirectToReferrer($context);
+        }
 
-            AssociationField::new('fournisseur')
-                ->setFormTypeOption('choice_label', 'nom')
-                ->setFormTypeOption('attr', ['class' => 'form-control']),
+        $commande->setEtat('receptionnee');
 
-            CollectionField::new('lignesCommandeAchat', 'Lignes de commande')
-                ->setEntryType(LigneCommandeAchatType::class)
-                ->allowAdd()
-                ->allowDelete()
-                ->renderExpanded()
-                ->setFormTypeOption('by_reference', false)
-                ->setFormTypeOption('prototype_name', '__ligne_idx__')
-                ->setEntryIsComplex(true)
-                ->setTemplatePath('admin/fields/lignes_commande.html.twig')
-                ->setFormTypeOption('mapped', true),
-        ];
+        foreach ($commande->getLignesCommandeAchat() as $ligne) {
+            $this->stockManager->ajusterStock(
+                $ligne->getProduit(),
+                $ligne->getQuantite(),
+                'achat'
+            );
+        }
+
+        $this->entityManager->flush();
+
+        $this->addFlash('success', 'Commande validée et stock mis à jour.');
+
+        $url = $this->adminUrlGenerator
+            ->setDashboard(DashboardController::class)
+            ->setController(self::class)
+            ->setAction('detail')
+            ->setEntityId($commande->getId())
+            ->generateUrl();
+
+        return $this->redirect($url);
+    }
+
+    private function redirectToReferrer(AdminContext $context): RedirectResponse
+    {
+        $referrer = $context->getReferrer();
+
+        if (!$referrer) {
+            $referrer = $this->adminUrlGenerator
+                ->setDashboard(DashboardController::class)
+                ->setController(self::class)
+                ->setAction('index')
+                ->generateUrl();
+        }
+
+        return $this->redirect($referrer);
     }
 }

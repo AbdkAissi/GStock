@@ -1,0 +1,81 @@
+// 1. Import Bootstrap (si utilisé)
+@use "~bootstrap/scss/bootstrap";
+
+
+// 2. Variables personnalisées
+$admin-bg-color: #f8f9fa;
+$admin-header-color: #ffffff;
+$admin-header-text-color: #ffffff;
+
+// 3. Style global pour l'administration
+body {
+    background-color: $admin-bg-color;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 14px;
+}
+
+// 4. Barre de navigation
+.navbar {
+    background-color: $admin-header-color;
+    color: $admin-header-text-color;
+
+    .nav-link {
+        color: $admin-header-text-color;
+
+        &:hover {
+            color: #adb5bd;
+        }
+    }
+}
+
+// 5. Tableau de données
+.table-admin {
+    background-color: white;
+    border: 1px solid #dee2e6;
+
+    th {
+        background-color: #e9ecef;
+        font-weight: bold;
+    }
+
+    td, th {
+        padding: 0.75rem;
+    }
+}
+
+// 6. Boutons personnalisés
+.btn-admin {
+    background-color: #198754;
+    color: white;
+
+    &:hover {
+        background-color: #157347;
+    }
+}
+
+// 7. Flash messages
+.flash-message {
+    margin: 10px 0;
+    padding: 12px;
+    border-radius: 6px;
+
+    &.alert-success { background-color: #d4edda; color: #155724; }
+    &.alert-error { background-color: #f8d7da; color: #721c24; }
+    &.alert-info { background-color: #d1ecf1; color: #0c5460; }
+}
+
+.sortable-column:hover {
+    background-color: #f1f1f1;
+}
+.sortable-column.asc::after {
+    content: " ↑";
+}
+.sortable-column.desc::after {
+    content: " ↓";
+}
+.paiement-resume {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
+.table-active {
+    --bs-table-accent-bg: rgba(13, 110, 253, 0.1) !important;
+}

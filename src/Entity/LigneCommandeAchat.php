@@ -87,6 +87,7 @@ class LigneCommandeAchat
         $this->produit = $produit;
         return $this;
     }
+
     public function getTotal(): float
     {
         return $this->quantite * $this->prixUnitaire;

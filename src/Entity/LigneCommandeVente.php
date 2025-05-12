@@ -18,10 +18,10 @@ class LigneCommandeVente
 
     #[ORM\Column]
     private ?float $prixUnitaire = null;
+
     #[ORM\ManyToOne(inversedBy: 'lignesCommandeVente')]
     #[ORM\JoinColumn(nullable: false)]
     private ?CommandeVente $commandeVente = null;
-
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
@@ -46,7 +46,6 @@ class LigneCommandeVente
         return $this;
     }
 
-
     public function getPrixUnitaire(): ?float
     {
         return $this->prixUnitaire;
@@ -61,7 +60,6 @@ class LigneCommandeVente
         return $this;
     }
 
-
     public function getCommandeVente(): ?CommandeVente
     {
         return $this->commandeVente;
@@ -70,10 +68,8 @@ class LigneCommandeVente
     public function setCommandeVente(?CommandeVente $commandeVente): static
     {
         $this->commandeVente = $commandeVente;
-
         return $this;
     }
-
 
     public function getProduit(): ?Produit
     {
@@ -83,7 +79,11 @@ class LigneCommandeVente
     public function setProduit(?Produit $produit): static
     {
         $this->produit = $produit;
-
         return $this;
+    }
+
+    public function getTotal(): float
+    {
+        return $this->quantite * $this->prixUnitaire;
     }
 }

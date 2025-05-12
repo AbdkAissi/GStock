@@ -34,21 +34,13 @@ class CommandeVenteManager
                     $quantiteDemandee
                 ));
             }
-
-            $this->stockManager->ajusterStock($produit, $quantiteDemandee, 'vente');
         }
+
+        $this->stockManager->ajusterCommandeVente($commande);
     }
 
-    /**
-     * Restaure le stock si la commande est annulée après avoir été réceptionnée.
-     */
     public function restaurerStock(CommandeVente $commande): void
     {
-        foreach ($commande->getLignesCommandeVente() as $ligne) {
-            $produit = $ligne->getProduit();
-            $quantite = $ligne->getQuantite();
-
-            $this->stockManager->ajusterStock($produit, $quantite, 'retour');
-        }
+        $this->stockManager->restaurerCommandeVente($commande);
     }
 }

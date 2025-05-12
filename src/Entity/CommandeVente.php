@@ -1,4 +1,5 @@
 <?php
+// src/Entity/CommandeVente.php
 
 namespace App\Entity;
 
@@ -8,10 +9,15 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use App\Entity\LigneCommandeVente;
 use App\Entity\Client;
+use App\Entity\Paiement;
 
 #[ORM\Entity(repositoryClass: CommandeVenteRepository::class)]
 class CommandeVente
 {
+    public const ETAT_EN_ATTENTE = 'en_attente';
+    public const ETAT_ANNULEE = 'annulee';
+    public const ETAT_RECEPTIONNEE = 'receptionnee';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -20,46 +26,58 @@ class CommandeVente
     #[ORM\Column]
     private ?\DateTimeImmutable $dateCommande = null;
 
-    #[ORM\Column(length: 255)]
-    private ?string $etat = 'en_attente';
-
+    #[ORM\Column(type: 'string', length: 20)]
+    private string $etat = self::ETAT_EN_ATTENTE;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
     private ?Client $client = null;
 
-    #[ORM\OneToMany(mappedBy: 'commandeVente', targetEntity: LigneCommandeVente::class, cascade: ['persist', 'remove'], orphanRemoval: true)]    private Collection $lignesCommandeVente;
+    #[ORM\OneToMany(mappedBy: 'commandeVente', targetEntity: LigneCommandeVente::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $lignesCommandeVente;
+
+    #[ORM\OneToMany(mappedBy: 'commandeVente', targetEntity: Paiement::class, cascade: ['persist'], orphanRemoval: true)]
+    private Collection $paiements;
 
     public function __construct()
     {
         $this->lignesCommandeVente = new ArrayCollection();
+        $this->paiements = new ArrayCollection();
     }
 
     public function getId(): ?int
     {
         return $this->id;
     }
+
+
     public function setLignesCommandeVente(Collection $lignes): static
     {
-        // Supprimer les lignes qui ne sont plus présentes
-        foreach ($this->lignesCommandeVente as $existingLigne) {
-            if (!$lignes->contains($existingLigne)) {
+        // Marquer les lignes qui ne sont plus présentes pour suppression
+        foreach ($this->lignesCommandeVente->toArray() as $existingLigne) {
+            $found = false;
+            foreach ($lignes as $newLigne) {
+                if ($newLigne->getId() && $existingLigne->getId() === $newLigne->getId()) {
+                    $found = true;
+                    break;
+                }
+            }
+
+            if (!$found) {
                 $this->removeLigneCommandeVente($existingLigne);
             }
         }
 
-        // Ajouter les nouvelles lignes
+        // Ajouter/Mettre à jour les nouvelles lignes
         foreach ($lignes as $ligne) {
-            if (!$this->lignesCommandeVente->contains($ligne)) {
+            // Si c'est une nouvelle ligne ou une ligne non associée à cette commande
+            if (!$ligne->getCommandeVente() || $ligne->getCommandeVente()->getId() !== $this->getId()) {
                 $this->addLigneCommandeVente($ligne);
             }
         }
 
         return $this;
     }
-
-    // src/Entity/CommandeVente.php
-
     public function getLignesCommandeAffichage(): string
     {
         if ($this->getLignesCommandeVente()->isEmpty()) {
@@ -119,6 +137,30 @@ HTML;
     {
         return $this->client;
     }
+    public function isValidee(): bool
+    {
+        return $this->etat === self::ETAT_RECEPTIONNEE;
+    }
+
+    public function isAnnulee(): bool
+    {
+        return $this->etat === self::ETAT_ANNULEE;
+    }
+
+    public function isEnAttente(): bool
+    {
+        return $this->etat === self::ETAT_EN_ATTENTE;
+    }
+
+    public static function getEtatsDisponibles(): array
+    {
+        return [
+            'En attente' => self::ETAT_EN_ATTENTE,
+            'Réceptionnée' => self::ETAT_RECEPTIONNEE,
+            'Annulée' => self::ETAT_ANNULEE,
+        ];
+    }
+
 
     public function setClient(?Client $client): static
     {
@@ -149,6 +191,7 @@ HTML;
         }
         return $this;
     }
+
     public function getTotalCommande(): float
     {
         $total = 0;
@@ -160,5 +203,14 @@ HTML;
             }
         }
         return $total;
+    }
+
+    public function getPaiements(): Collection
+    {
+        return $this->paiements;
+    }
+    public function __toString(): string
+    {
+        return 'Vente #' . $this->getId(); // ou n'importe quel champ lisible
     }
 }

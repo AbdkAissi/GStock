@@ -1,0 +1,12 @@
+.navbar {
+    background-color: $admin-header-color;
+    color: $admin-header-text-color;
+
+    .nav-link {
+        color: $admin-header-text-color;
+
+        &:hover {
+            color: #adb5bd;
+        }
+    }
+}

@@ -1,83 +1,53 @@
 const Encore = require('@symfony/webpack-encore');
-
-// Manually configure the runtime environment if not already configured yet by the "encore" command.
-// It's useful when you use tools that rely on webpack.config.js file.
-if (!Encore.isRuntimeEnvironmentConfigured()) {
-    Encore.configureRuntimeEnvironment(process.env.NODE_ENV || 'dev');
-}
+const path = require('path');
 
 Encore
-    // directory where compiled assets will be stored
+    // Répertoire de sortie
     .setOutputPath('public/build/')
-    // public path used by the web server to access the output path
     .setPublicPath('/build')
-    // only needed for CDN's or subdirectory deploy
-    //.setManifestKeyPrefix('build/')
-    
-    // ...
-    .addEntry('easyadmin-ligne-commande', './assets/easyadmin-ligne-commande.js')
-    // webpack.config.js
-    //.addEntry('login', './assets/styles/login.scss')
-    /*
-     * ENTRY CONFIG
-     *
-     * Each entry will result in one JavaScript file (e.g. app.js)
-     * and one CSS file (e.g. app.css) if your JavaScript imports CSS.
-     */
+    .enableSassLoader()
+
+    // Entrées JS principales
     .addEntry('app', './assets/app.js')
     .addEntry('admin', './assets/admin.js')
-    .addEntry('login', './assets/login.js') // Ajoutez cette ligne
+    .addEntry('auto-prix-achat', './assets/js/auto-prix-achat.js')
+    .addEntry('auto-prix-vente', './assets/js/auto-prix-vente.js')
+    .addEntry('paiement', './assets/js/paiement.js')
+    .addEntry('easyadmin-ligne-commande', './assets/js/easyadmin-ligne-commande.js')
+    // Ajoute d'autres fichiers si besoin
 
-    // When enabled, Webpack "splits" your files into smaller pieces for greater optimization.
-    .splitEntryChunks()
+    // Active React, Vue, Stimulus ou autre si besoin
+    .enableStimulusBridge('./assets/controllers.json')
 
-    // will require an extra script tag for runtime.js
-    // but, you probably want this, unless you're building a single-page app
+    // Active Sass/SCSS
+    .enableSassLoader()
+
+    // PostCSS (utile pour compatibilité navigateur)
+    .enablePostCssLoader()
+
+    // Génère un seul fichier runtime
     .enableSingleRuntimeChunk()
 
-    /*
-     * FEATURE CONFIG
-     *
-     * Enable & configure other features below. For a full
-     * list of features, see:
-     * https://symfony.com/doc/current/frontend.html#adding-more-features
-     */
+    // Active sourcemaps en dev
+    .enableSourceMaps(!Encore.isProduction())
+
+    // Nettoie le dossier /build à chaque compilation
     .cleanupOutputBeforeBuild()
 
-    // Displays build status system notifications to the user
-    // .enableBuildNotifications()
+    // Hashage des fichiers pour la production
+    .enableVersioning(Encore.isProduction())
 
-    .enableSourceMaps(!Encore.isProduction())
-    // enables hashed filenames (e.g. app.abc123.css)
-    .enableVersioning(false)
+    // Active l'intégration de jQuery si besoin
+    //.autoProvidejQuery()
 
-
-    // configure Babel
-    // .configureBabel((config) => {
-    //     config.plugins.push('@babel/a-babel-plugin');
-    // })
-
-    // enables and configure @babel/preset-env polyfills
-    .configureBabelPresetEnv((config) => {
-        config.useBuiltIns = 'usage';
-        config.corejs = '3.38';
+    // Active Babel avec polyfills automatiques
+    .configureBabel(() => {}, {
+        useBuiltIns: 'usage',
+        corejs: 3
     })
 
-    // enables Sass/SCSS support
-    //.enableSassLoader()
-
-    // uncomment if you use TypeScript
-    //.enableTypeScriptLoader()
-
-    // uncomment if you use React
-    //.enableReactPreset()
-
-    // uncomment to get integrity="..." attributes on your script & link tags
-    // requires WebpackEncoreBundle 1.4 or higher
-    //.enableIntegrityHashes(Encore.isProduction())
-
-    // uncomment if you're having problems with a jQuery plugin
-    //.autoProvidejQuery()
+    // Affiche les erreurs de build plus clairement
+    .enableBuildNotifications()
 ;
 
 module.exports = Encore.getWebpackConfig();

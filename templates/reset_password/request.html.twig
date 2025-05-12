@@ -1,0 +1,77 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Réinitialiser le mot de passe{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        body {
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        .reset-box {
+            background-color: #fff;
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .reset-box h2 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn {
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+        }
+
+        @media (max-width: 576px) {
+            .reset-box {
+                padding: 2rem 1.5rem;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <div class="reset-box">
+        <h2>Réinitialiser le mot de passe</h2>
+
+        {% if error %}
+            <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+
+        {% for flash_error in app.flashes('reset_password_error') %}
+            <div class="alert alert-danger">{{ flash_error }}</div>
+        {% endfor %}
+
+        {% for flash_success in app.flashes('success') %}
+            <div class="alert alert-success">{{ flash_success }}</div>
+        {% endfor %}
+
+        <form action="{{ path('app_forgot_password_request') }}" method="post">
+            <div class="form-group mb-3">
+                <label for="email" class="form-label">Votre adresse email</label>
+                <input type="email" name="email" id="email" required class="form-control" autocomplete="email">
+            </div>
+
+            <button class="btn btn-primary w-100">Envoyer le lien de réinitialisation</button>
+        </form>
+
+        <div class="text-center mt-3">
+            <a href="{{ path('app_login') }}">Retour à la connexion</a>
+        </div>
+    </div>
+{% endblock %}

@@ -7,6 +7,7 @@ use App\Entity\CommandeAchat;
 use App\Entity\CommandeVente;
 use App\Entity\Fournisseur;
 use App\Entity\Produit;
+use App\Entity\Paiement;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
@@ -17,6 +18,7 @@ use App\Repository\ProduitRepository;
 use App\Repository\ClientRepository;
 use App\Repository\CommandeVenteRepository;
 use App\Repository\CommandeAchatRepository;
+use App\Controller\Admin\CommandeVenteCrudController;
 
 class DashboardController extends AbstractDashboardController
 {
@@ -71,7 +73,9 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::subMenu('Gestion Logistique', 'fas fa-bars')->setSubItems([
             MenuItem::linkToCrud('Fournisseurs', 'fas fa-truck', Fournisseur::class),
             MenuItem::linkToCrud('Commandes Achat', 'fas fa-shopping-cart', CommandeAchat::class),
-            MenuItem::linkToCrud('Commandes Vente', 'fas fa-cash-register', CommandeVente::class),
+            MenuItem::linkToCrud('Commandes Vente', 'fas fa-cash-register', CommandeVente::class)
+                ->setController(CommandeVenteCrudController::class),
+            MenuItem::linkToCrud('Paiements', 'fa fa-money-bill', Paiement::class),
         ]);
     }
 
@@ -80,8 +84,8 @@ class DashboardController extends AbstractDashboardController
     {
         return parent::configureAssets()
             ->addWebpackEncoreEntry('admin') // Entrée Webpack principale pour l’admin
-            ->addJsFile('js/auto-prix-vente.js') // Script JS pour remplir automatiquement le prix de vente
-            ->addJsFile('js/auto-prix-achat.js') // Script JS pour remplir automatiquement le prix d'achat
-            ->addCssFile('css/admin.css'); // Fichier CSS personnalisé pour l’interface admin
+            ->addJsFile('build/auto-prix-vente.js') // Utilise le chemin correct pour Webpack
+            ->addJsFile('build/auto-prix-achat.js') // Utilise le chemin correct pour Webpack
+            ->addCssFile('build/admin.css'); // CSS via Webpack
     }
 }

@@ -1,19 +1,23 @@
-import './bootstrap.js';
-/*
- * Welcome to your app's main JavaScript file!
- *
- * This file will be included onto the page via the importmap() Twig function,
- * which should already be in your base.html.twig.
- */
-
-
-import './styles/app.css';
-// assets/admin.js
-import './js/auto-prix-achat.js';
-import './js/auto-prix-vente.js';
-console.log('This log comes from assets/app.js - welcome to AssetMapper! 🎉');
+import './bootstrap.js'; // Si tu as un fichier bootstrap.js personnalisé
+import 'bootstrap'; // Charger Bootstrap en JS (le CSS peut être inclus via SCSS)
+import './styles/app.scss'; // Ton SCSS personnalisé
+import './paiement.js';
 import Swal from 'sweetalert2';
 
+
+
+import $ from 'jquery';
+
+import '@fortawesome/fontawesome-free/js/fontawesome';
+import '@fortawesome/fontawesome-free/js/solid';
+import '@fortawesome/fontawesome-free/js/regular';
+import '@fortawesome/fontawesome-free/js/brands';
+
+
+
+
+
+// Attente du chargement complet du DOM
 document.addEventListener('DOMContentLoaded', function() {
     const flashes = document.querySelectorAll('.flash-message');
 
@@ -42,5 +46,3 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
-
-

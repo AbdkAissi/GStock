@@ -35,7 +35,7 @@ class LigneCommandeVenteType extends AbstractType
                 'placeholder' => 'Choisir un produit',
                 'choice_attr' => function (Produit $produit) {
                     return [
-                        'data-prix' => $produit->getPrixVente(),
+                        'data-prix' => number_format($produit->getPrixVente(), 2, '.', ''),
                         'disabled' => $produit->getQuantiteStock() <= 0 ? 'disabled' : false,
                     ];
                 },

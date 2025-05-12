@@ -1,4 +1,5 @@
 <?php
+// src/Entity/CommandeAchat.php
 
 namespace App\Entity;
 
@@ -8,6 +9,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use App\Entity\LigneCommandeAchat;
 use App\Entity\Fournisseur;
+use App\Entity\Paiement;
 
 #[ORM\Entity(repositoryClass: CommandeAchatRepository::class)]
 class CommandeAchat
@@ -27,11 +29,15 @@ class CommandeAchat
     #[ORM\JoinColumn(nullable: false)]
     private ?Fournisseur $fournisseur = null;
 
+    #[ORM\OneToMany(targetEntity: Paiement::class, mappedBy: "commandeAchat")]
+    private Collection $paiements;
+
     #[ORM\OneToMany(mappedBy: 'commandeAchat', targetEntity: LigneCommandeAchat::class, cascade: ['persist'], orphanRemoval: true)]
     private Collection $lignesCommandeAchat;
 
     public function __construct()
     {
+        $this->paiements = new ArrayCollection();
         $this->lignesCommandeAchat = new ArrayCollection();
     }
 
@@ -66,33 +72,6 @@ class CommandeAchat
     {
         return $this->fournisseur;
     }
-    // src/Entity/CommandeVente.php
-
-    public function getLignesCommandeAffichage(): string
-    {
-        if ($this->getLignesCommandeAchat()->isEmpty()) {
-            return '<em>Aucune ligne</em>';
-        }
-
-        $html = '<details><summary>Voir détails</summary><ul style="margin:0;padding-left:15px">';
-        foreach ($this->getLignesCommandeAchat() as $ligne) {
-            $produit = htmlspecialchars($ligne->getProduit()->getNom());
-            $quantite = $ligne->getQuantite();
-            $prixUnitaire = number_format($ligne->getPrixUnitaire(), 2, ',', ' ');
-            $totalLigne = number_format($ligne->getQuantite() * $ligne->getPrixUnitaire(), 2, ',', ' ');
-
-            $html .= sprintf(
-                '<li>%s × %d à %s MAD (Total : %s MAD)</li>',
-                $produit,
-                $quantite,
-                $prixUnitaire,
-                $totalLigne
-            );
-        }
-        $html .= '</ul></details>';
-
-        return $html;
-    }
 
     public function setFournisseur(?Fournisseur $fournisseur): static
     {
@@ -105,17 +84,14 @@ class CommandeAchat
         return $this->lignesCommandeAchat;
     }
 
-    // Dans CommandeAchat.php
     public function setLignesCommandeAchat(Collection $lignes): static
     {
-        // Supprimer les anciennes lignes non présentes
         foreach ($this->lignesCommandeAchat as $existingLigne) {
             if (!$lignes->contains($existingLigne)) {
                 $this->removeLigneCommandeAchat($existingLigne);
             }
         }
 
-        // Ajouter les nouvelles lignes
         foreach ($lignes as $ligne) {
             if (!$this->lignesCommandeAchat->contains($ligne)) {
                 $this->addLigneCommandeAchat($ligne);
@@ -148,12 +124,47 @@ class CommandeAchat
     {
         $total = 0;
         foreach ($this->lignesCommandeAchat as $ligne) {
-            $prixUnitaire = $ligne->getPrixUnitaire(); // ne doit jamais être null, ou 0 par défaut
-            $quantite = $ligne->getQuantite(); // ne doit jamais être null, ou 0 par défaut
+            $prixUnitaire = $ligne->getPrixUnitaire();
+            $quantite = $ligne->getQuantite();
             if ($prixUnitaire > 0 && $quantite > 0) {
                 $total += $prixUnitaire * $quantite;
             }
         }
         return $total;
+    }
+
+    public function getLignesCommandeAffichage(): string
+    {
+        if ($this->getLignesCommandeAchat()->isEmpty()) {
+            return '<em>Aucune ligne</em>';
+        }
+
+        $html = '<details><summary>Voir détails</summary><ul style="margin:0;padding-left:15px">';
+        foreach ($this->getLignesCommandeAchat() as $ligne) {
+            $produit = htmlspecialchars($ligne->getProduit()->getNom());
+            $quantite = $ligne->getQuantite();
+            $prixUnitaire = number_format($ligne->getPrixUnitaire(), 2, ',', ' ');
+            $totalLigne = number_format($ligne->getQuantite() * $ligne->getPrixUnitaire(), 2, ',', ' ');
+
+            $html .= sprintf(
+                '<li>%s × %d à %s MAD (Total : %s MAD)</li>',
+                $produit,
+                $quantite,
+                $prixUnitaire,
+                $totalLigne
+            );
+        }
+        $html .= '</ul></details>';
+
+        return $html;
+    }
+
+    public function getPaiements(): Collection
+    {
+        return $this->paiements;
+    }
+    public function __toString(): string
+    {
+        return 'Achat #' . $this->getId(); // ou un champ pertinent comme fournisseur ou date
     }
 }
