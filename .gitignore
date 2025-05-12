@@ -27,3 +27,14 @@ yarn-error.log
 ###> phpstan/phpstan ###
 phpstan.neon
 ###< phpstan/phpstan ###
+# IDEs
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Vim
+*.swp
+*.swo
