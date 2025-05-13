@@ -17,6 +17,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\UrlField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
+use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
 use App\Entity\Client;
 use App\Entity\Fournisseur;
@@ -56,8 +57,16 @@ class PaiementCrudController extends AbstractCrudController
                     'Fournisseur' => 'fournisseur',
                 ])
                 ->setFormTypeOption('attr', ['id' => 'type-paiement'])
-                ->setFormTypeOption('row_attr', ['data-field' => 'type-paiement']),
+                ->setFormTypeOption('row_attr', ['data-field' => 'type-paiement'])
 
+                // Ajout du formatValue pour afficher correctement les valeurs dans la liste
+                ->formatValue(function ($value, $entity) {
+                    $types = [
+                        'client' => 'Client',
+                        'fournisseur' => 'Fournisseur'
+                    ];
+                    return $types[$value] ?? $value;
+                }),
 
             ChoiceField::new('moyenPaiement', 'Méthode')->setChoices([
                 'Espèces' => 'especes',
@@ -65,12 +74,40 @@ class PaiementCrudController extends AbstractCrudController
                 'Chèque' => 'cheque',
                 'Virement bancaire' => 'virement_bancaire',
             ])->allowMultipleChoices(false)
-                ->renderExpanded(false),
-
+                ->renderExpanded(false)
+                // Ajout du formatValue pour afficher correctement les valeurs dans la liste
+                ->formatValue(function ($value, $entity) {
+                    $moyens = [
+                        'especes' => 'Espèces',
+                        'carte_bancaire' => 'Carte bancaire',
+                        'cheque' => 'Chèque',
+                        'virement_bancaire' => 'Virement bancaire'
+                    ];
+                    return $moyens[$value] ?? $value;
+                }),
             MoneyField::new('montant', 'Montant')
                 ->setCurrency('MAD')
                 ->setStoredAsCents(false),
         ];
+        TextField::new('commandeAssociee', 'Commande associée')
+            ->setSortable(false)
+            ->formatValue(function ($value, $entity) {
+                $url = $entity->getCommandeAssocieeUrl();
+                if ($url) {
+                    return sprintf('<a href="%s">%s</a>', $url, $value);
+                }
+                return $value;
+            });
+        if ($pageName === Crud::PAGE_INDEX) {
+            $fields[] = TextField::new('commandeAssocieeAffichage', 'Commande associée')
+                ->renderAsHtml();
+        }
+
+        if ($pageName === Crud::PAGE_DETAIL) {
+            $fields[] = TextField::new('commandeAssocieeAffichage', 'Commande associée')
+                ->renderAsHtml();
+        }
+
 
         // Ajouts pour formulaire de création/édition
         if ($pageName === Crud::PAGE_NEW || $pageName === Crud::PAGE_EDIT) {
@@ -109,7 +146,7 @@ class PaiementCrudController extends AbstractCrudController
                     return $entity->getBeneficiaire(); // méthode personnalisée pour afficher nom
                 });
 
-            $fields[] = TextField::new('commandeAssociee', 'Commande associée')
+            /* $fields[] = TextField::new('commandeAssociee', 'Commande associée')
                 ->formatValue(function ($value, $entity) {
                     if ($entity->getCommandeVente()) {
                         return 'Vente #' . $entity->getCommandeVente()->getId();
@@ -117,7 +154,7 @@ class PaiementCrudController extends AbstractCrudController
                         return 'Achat #' . $entity->getCommandeAchat()->getId();
                     }
                     return 'Aucune';
-                });
+                });*/
         }
 
         // Pour la vue détail

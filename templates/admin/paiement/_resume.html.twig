@@ -1,4 +1,6 @@
-{# templates/admin/paiement/_resume.html.twig #}
+{% set commande = entity.instance.commandeVente ?? entity.instance.commandeAchat %}
+{% set paiements = commande ? commande.paiements : [entity.instance] %}
+
 <div class="paiement-resume bg-light p-4 rounded">
     <h4 class="mb-4 border-bottom pb-2">
         <i class="fas fa-history me-2"></i>
@@ -18,7 +20,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for p in entity.instance.getPaiementsAssocies()|sort((a, b) => b.date <=> a.date) %}
+                {% for p in paiements|sort((a, b) => b.date <=> a.date) %}
                     <tr class="{{ p.id == entity.instance.id ? 'table-active' }} align-middle">
                         <td>{{ p.date|date('d/m/Y') }}</td>
                         <td>{{ p.montant|number_format(2, ',', ' ') }} MAD</td>
@@ -57,7 +59,7 @@
             </tbody>
             <tfoot class="table-group-divider">
                 <tr>
-                    <th>Total ({{ entity.instance.getPaiementsAssocies()|length }} paiements)</th>
+                    <th>Total ({{ paiements|length }} paiements)</th>
                     <th class="text-success">{{ entity.instance.getTotalPaiements()|number_format(2, ',', ' ') }} MAD</th>
                     <th colspan="3"></th>
                 </tr>

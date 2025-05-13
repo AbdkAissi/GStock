@@ -142,10 +142,33 @@ class Paiement
         );
     }
 
-    public function getPaiementsAssocies(): array
+    // src/Entity/Paiement.php
+    public function getCommandeAssociee(): ?string
     {
-        $beneficiaire = $this->client ?? $this->fournisseur;
-        return $beneficiaire ? $beneficiaire->getPaiements()->toArray() : [];
+        if ($this->getCommandeVente()) {
+            return 'Vente #' . $this->getCommandeVente()->getId();
+        }
+
+        if ($this->getCommandeAchat()) {
+            return 'Achat #' . $this->getCommandeAchat()->getId();
+        }
+
+        return 'Aucune';
+    }
+
+    public function getCommandeAssocieeAffichage(): string
+    {
+        if ($this->commandeVente) {
+            $id = $this->commandeVente->getId();
+            return '<a href="/admin/commande-vente/' . $id . '" target="_blank" style="color:#0d6efd;"> Vente #' . $id . '</a>';
+        }
+
+        if ($this->commandeAchat) {
+            $id = $this->commandeAchat->getId();
+            return '<a href="/admin/commande-achat/' . $id . '" target="_blank" style="color:#0d6efd;"> Achat #' . $id . '</a>';
+        }
+
+        return '<span style="color:gray;">Non associée</span>';
     }
 
     public function validateClientOrFournisseur(ExecutionContextInterface $context): void
@@ -190,6 +213,7 @@ class Paiement
         $this->commandeVente = $commandeVente;
         return $this;
     }
+
     public function getTypePaiement(): string
     {
         if ($this->commandeVente) {
