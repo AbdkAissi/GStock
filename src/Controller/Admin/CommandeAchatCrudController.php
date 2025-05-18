@@ -80,6 +80,15 @@ class CommandeAchatCrudController extends AbstractCrudController
                     'receptionnee' => 'success',
                     'annulee' => 'danger',
                 ]),
+            ChoiceField::new('etatPaiement', 'Paiement')
+                ->onlyOnIndex()
+                ->formatValue(fn($value, $entity) => $entity->getEtatPaiement())
+                ->renderAsBadges([
+                    'payée' => 'success',
+                    'partielle' => 'warning',
+                    'impayée' => 'danger',
+                ]),
+
             AssociationField::new('fournisseur')
                 ->setFormTypeOption('choice_label', 'nom'),
             CollectionField::new('lignesCommandeAchat', 'Lignes de commande')
@@ -94,6 +103,10 @@ class CommandeAchatCrudController extends AbstractCrudController
         ];
 
         if ($pageName === Crud::PAGE_DETAIL) {
+            // ✅ Historique des paiements
+            $fields[] = AssociationField::new('paiements', 'Historique des paiements')
+                ->onlyOnDetail()
+                ->setTemplatePath('admin/fields/historique_paiements.html.twig');
             $fields[] = MoneyField::new('totalCommande', 'Total de la commande')
                 ->setCurrency('MAD')
                 ->formatValue(fn($value, $entity) => number_format($entity->getTotalCommande(), 2, ',', ' ') . ' MAD');

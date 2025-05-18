@@ -1,88 +1,197 @@
 {% extends '@EasyAdmin/page/content.html.twig' %}
 
 {% block content %}
-	<h1>📊 Tableau de bord</h1>
-
-	<!-- Conteneur principal pour centrer la grille -->
-	<div
-		style="display: flex; justify-content: center; align-items: center; width: 100%; padding: 200px;">
-		<!-- Grille des cartes avec alignement -->
+	<div class="container py-4">
 		<div
-			style="display: grid;
-				                    grid-template-columns: repeat(auto-fill, minmax(2000px, 1fr));
-				                    gap: 20px;
-				                    width: 100%;
-				                    justify-content: center;">
-
-			<!-- Carte Produits -->
-			<a href="{{ urls.produits }}" class="stat-card-link">
-				<div class="card">
-					<h3>
-						<i class="fas fa-box me-2"></i>
-						Produits</h3>
-					<p>Total :
-						<strong>{{ totalProduits }}</strong>
-					</p>
+			class="row">
+			<!-- Cartes statistiques -->
+			{% for card in [
+            {'title': 'Produits', 'value': totalProduits, 'color': 'primary', 'url': urls.produits},
+            {'title': 'Clients', 'value': totalClients, 'color': 'success', 'url': urls.clients},
+            {'title': 'Commandes Vente', 'value': totalCommandesVente, 'color': 'warning', 'url': urls.commandes_vente},
+            {'title': 'Commandes Achat', 'value': totalCommandesAchat, 'color': 'danger', 'url': urls.commandes_achat}
+        ] %}
+				<div class="col-md-3">
+					<div class="card text-white bg-{{ card.color }} mb-3">
+						<div class="card-body">
+							<h5 class="card-title">{{ card.title }}</h5>
+							<p class="card-text fs-4">{{ card.value }}</p>
+							<a href="{{ card.url }}" class="btn btn-light btn-sm">Voir</a>
+						</div>
+					</div>
 				</div>
-			</a>
+			{% endfor %}
+		</div>
 
-			<!-- Carte Clients -->
-			<a href="{{ urls.clients }}" class="stat-card-link">
-				<div class="card">
-					<h3>
-						<i class="fas fa-users me-2"></i>
-						Clients</h3>
-					<p>Total :
-						<strong>{{ totalClients }}</strong>
-					</p>
-				</div>
-			</a>
+		<!-- Sélecteur de type de graphique -->
+		<div class="d-flex justify-content-between align-items-center mt-4">
+			<h4>Évolution des commandes</h4>
+			<div>
+				<label class="me-2">Type de graphique :</label>
+				<select id="chartTypeSelector" class="form-select d-inline w-auto">
+					<option value="line">Ligne</option>
+					<option value="bar">Barres</option>
+					<option value="radar">Radar</option>
+				</select>
+				<button class="btn btn-outline-secondary btn-sm ms-2" id="downloadChart">Télécharger PNG</button>
+			</div>
+		</div>
 
-			<!-- Carte Commandes vente -->
-			<a href="{{ urls.commandes_vente }}" class="stat-card-link">
-				<div class="card">
-					<h4>
-						<i class="fas fa-shopping-cart me-2"></i>
-						Commandes Vente</h4>
-					<p>Total :
-						<strong>{{ totalCommandesVente }}</strong>
-					</p>
-				</div>
-			</a>
+		<!-- Graphique principal -->
+		<div class="card shadow mt-3">
+			<div class="card-body">
+				<canvas id="lineChart" height="100"></canvas>
+			</div>
+		</div>
 
-			<!-- Carte Commandes achat -->
-			<a href="{{ urls.commandes_achat }}" class="stat-card-link">
-				<div class="card">
-					<h4>
-						<i class="fas fa-shopping-basket me-2"></i>
-						Commandes Achat</h4>
-					<p>Total :
-						<strong>{{ totalCommandesAchat }}</strong>
-					</p>
-				</div>
-			</a>
+		<!-- Deuxième graphique en ruban -->
+		<div class="card shadow mt-5">
+			<div class="card-body">
+				<h5 class="card-title">Comparaison ventes / achats (ruban)</h5>
+				<canvas id="barChart" height="100"></canvas>
+			</div>
 		</div>
 	</div>
 
-	<style>
-		.card {
-			padding: 1rem;
-			background: #f9f9f9;
-			border-radius: 12px;
-			box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-			width: 100%;
-			max-width: 300px; /* Limite la largeur des cartes pour les rendre plus visibles */
-		}
+	<!-- Chart.js -->
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+	<script>
+		const ventes = {{ ventesParMois|json_encode()|raw }};
+const achats = {{ achatsParMois|json_encode()|raw }};
 
-		.stat-card-link {
-			text-decoration: none;
-			color: inherit;
-		}
+const labels = ventes.map(item => item.mois);
+const ventesData = ventes.map(item => item.total);
+const achatsData = achats.map(item => item.total);
 
-		.card:hover {
-			transform: translateY(-5px);
-			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-			cursor: pointer;
-		}
-	</style>
+const ctx = document.getElementById('lineChart').getContext('2d');
+const ctxBar = document.getElementById('barChart').getContext('2d');
+let currentChart = null;
+
+function createChart(type) {
+if (currentChart) 
+currentChart.destroy();
+
+
+const isRadar = type === 'radar';
+const fill = type === 'line';
+
+currentChart = new Chart(ctx, {
+type: type,
+data: {
+labels: labels,
+datasets: [
+{
+label: 'Commandes Vente',
+data: ventesData,
+borderColor: 'rgba(75, 192, 192, 1)',
+backgroundColor: isRadar ? 'rgba(75, 192, 192, 0.3)' : 'rgba(75, 192, 192, 0.5)',
+fill: fill,
+hidden: false,
+tension: 0.4,
+borderWidth: 2
+}, {
+label: 'Commandes Achat',
+data: achatsData,
+borderColor: 'rgba(255, 99, 132, 1)',
+backgroundColor: isRadar ? 'rgba(255, 99, 132, 0.3)' : 'rgba(255, 99, 132, 0.5)',
+fill: fill,
+hidden: false,
+tension: 0.4,
+borderWidth: 2
+}
+]
+},
+options: {
+responsive: true,
+plugins: {
+legend: {
+display: true,
+onClick: (e, legendItem, legend) => {
+const index = legendItem.datasetIndex;
+const ci = legend.chart;
+const meta = ci.getDatasetMeta(index);
+meta.hidden = meta.hidden === null ? ! ci.data.datasets[index].hidden : null;
+ci.update();
+}
+}
+},
+scales: ! isRadar ? {
+y: {
+beginAtZero: true,
+ticks: {
+stepSize: 1,
+precision: 0
+},
+title: {
+display: true,
+text: 'Nombre de commandes'
+}
+},
+x: {
+title: {
+display: true,
+text: 'Mois'
+}
+}
+} : {}
+}
+});
+}
+
+// Deuxième graphique : barres empilées
+new Chart(ctxBar, {
+type: 'bar',
+data: {
+labels: labels,
+datasets: [
+{
+label: 'Commandes Vente',
+data: ventesData,
+backgroundColor: 'rgba(75, 192, 192, 0.6)'
+}, {
+label: 'Commandes Achat',
+data: achatsData,
+backgroundColor: 'rgba(255, 99, 132, 0.6)'
+}
+]
+},
+options: {
+responsive: true,
+plugins: {
+legend: {
+position: 'top'
+}
+},
+scales: {
+x: {
+stacked: true
+},
+y: {
+stacked: true,
+beginAtZero: true,
+ticks: {
+stepSize: 1,
+precision: 0
+}
+}
+}
+}
+});
+
+// Initialisation
+createChart('line');
+
+// Sélecteur de type
+document.getElementById('chartTypeSelector').addEventListener('change', function () {
+createChart(this.value);
+});
+
+// Bouton de téléchargement
+document.getElementById('downloadChart').addEventListener('click', function () {
+const a = document.createElement('a');
+a.href = document.getElementById('lineChart').toDataURL('image/png');
+a.download = 'graphique_commandes.png';
+a.click();
+});
+	</script>
 {% endblock %}

@@ -87,6 +87,20 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
         return $this;
     }
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $nom = null;
+
+    public function getNom(): ?string
+    {
+        return $this->nom;
+    }
+
+    public function setNom(?string $nom): self
+    {
+        $this->nom = $nom;
+
+        return $this;
+    }
 
     /**
      * @see PasswordAuthenticatedUserInterface
@@ -155,5 +169,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function __toString(): string
     {
         return $this->email;
+    }
+    public function getUsername(): string
+    {
+        return (string) $this->nom;
     }
 }

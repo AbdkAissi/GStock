@@ -1,0 +1,22 @@
+<table class="table table-sm table-bordered">
+    <thead>
+        <tr>
+            <th>Date paiement</th>
+            <th>Montant</th>
+            <th>Méthode</th>
+            <th>Note</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for paiement in field.value %}
+        <tr>
+            <td>{{ paiement.date ? paiement.date|date('d/m/Y H:i') : '' }}</td>
+            <td>{{ paiement.montant ? paiement.montant|number_format(2, ',', ' ') ~ ' MAD' : '' }}</td>
+            <td>{{ paiement.moyenPaiement }}</td>
+            <td>{{ paiement.commentaire|raw }}</td>
+        </tr>
+    {% else %}
+        <tr><td colspan="4">Aucun paiement enregistré</td></tr>
+    {% endfor %}
+    </tbody>
+</table>

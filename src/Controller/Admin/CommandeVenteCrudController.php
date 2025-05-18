@@ -83,7 +83,10 @@ class CommandeVenteCrudController extends AbstractCrudController
     {
         $fields = [
             IdField::new('id')->hideOnForm(),
-            DateField::new('dateCommande', 'Date commande')->setFormat('dd/MM/yyyy HH:mm'),
+
+            DateField::new('dateCommande', 'Date commande')
+                ->setFormat('dd/MM/yyyy HH:mm'),
+
             ChoiceField::new('etat', 'État')
                 ->setChoices([
                     'En attente' => 'en_attente',
@@ -95,25 +98,41 @@ class CommandeVenteCrudController extends AbstractCrudController
                     'receptionnee' => 'success',
                     'annulee' => 'danger',
                 ]),
+
+            ChoiceField::new('etatPaiement', 'Paiement')
+                ->onlyOnIndex()
+                ->formatValue(fn($value, $entity) => $entity->getEtatPaiement())
+                ->renderAsBadges([
+                    'payée' => 'success',
+                    'partielle' => 'warning',
+                    'impayée' => 'danger',
+                ]),
+
             AssociationField::new('client')
                 ->setFormTypeOption('choice_label', 'nom'),
+
             CollectionField::new('lignesCommandeVente', 'Lignes de commande')
                 ->setEntryType(LigneCommandeVenteType::class)
                 ->allowAdd()
                 ->allowDelete()
                 ->renderExpanded()
+                ->setEntryIsComplex(true)
                 ->setFormTypeOption('by_reference', false)
                 ->setFormTypeOption('prototype_name', '__ligne_idx__')
-                ->setTemplatePath('admin/fields/lignes_commande.html.twig')
-                ->setEntryIsComplex(true),
+                ->setTemplatePath('admin/fields/lignes_commande.html.twig'),
         ];
 
+        // Champs visibles uniquement en mode DETAIL
         if ($pageName === Crud::PAGE_DETAIL) {
+            // ✅ Historique des paiements
+            $fields[] = AssociationField::new('paiements', 'Historique des paiements')
+                ->onlyOnDetail()
+                ->setTemplatePath('admin/fields/historique_paiements.html.twig');
+
             $fields[] = MoneyField::new('totalCommande', 'Total de la commande')
                 ->setCurrency('MAD')
                 ->formatValue(fn($value, $entity) => number_format($entity->getTotalCommande(), 2, ',', ' ') . ' MAD');
 
-            // Champ virtuel, pas présent dans l'entité
             $fields[] = Field::new('montantTotalPaye', 'Montant payé')
                 ->onlyOnDetail()
                 ->setVirtual(true)

@@ -50,7 +50,6 @@ class CommandeVente
         return $this->id;
     }
 
-
     public function setLignesCommandeVente(Collection $lignes): static
     {
         // Marquer les lignes qui ne sont plus présentes pour suppression
@@ -222,6 +221,20 @@ HTML;
     {
         return $this->paiements;
     }
+    public function getEtatPaiement(): string
+    {
+        $total = $this->getTotalCommande() ?? 0;
+        $paye = $this->getMontantTotalPaye() ?? 0;
+
+        if ($paye >= $total) {
+            return 'payée';
+        } elseif ($paye > 0) {
+            return 'partielle';
+        } else {
+            return 'impayée';
+        }
+    }
+
     public function __toString(): string
     {
         return 'Vente #' . $this->getId(); // ou n'importe quel champ lisible

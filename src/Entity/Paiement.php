@@ -25,6 +25,12 @@ class Paiement
     #[ORM\Column(length: 10)]
     private ?string $moyenPaiement = null;
 
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $typePaiement = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $commentaire = null;
+
     #[ORM\ManyToOne(inversedBy: 'paiements')]
     #[ORM\JoinColumn(nullable: true)]
     private ?Client $client = null;
@@ -32,10 +38,14 @@ class Paiement
     #[ORM\ManyToOne(inversedBy: 'paiements')]
     #[ORM\JoinColumn(nullable: true)]
     private ?Fournisseur $fournisseur = null;
-    #[ORM\Column(length: 20, nullable: true)]
-    private ?string $typePaiement = null;
-    #[ORM\Column(type: 'text', nullable: true)]
-    private ?string $commentaire = null;
+
+    #[ORM\ManyToOne(targetEntity: CommandeAchat::class, inversedBy: 'paiements')]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?CommandeAchat $commandeAchat = null;
+
+    #[ORM\ManyToOne(targetEntity: CommandeVente::class, inversedBy: 'paiements')]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?CommandeVente $commandeVente = null;
 
     public function getId(): ?int
     {
@@ -75,6 +85,17 @@ class Paiement
         return $this;
     }
 
+    public function getCommentaire(): ?string
+    {
+        return $this->commentaire;
+    }
+
+    public function setCommentaire(?string $commentaire): static
+    {
+        $this->commentaire = $commentaire;
+        return $this;
+    }
+
     public function getClient(): ?Client
     {
         return $this->client;
@@ -97,92 +118,6 @@ class Paiement
         return $this;
     }
 
-    public function getCommentaire(): ?string
-    {
-        return $this->commentaire;
-    }
-
-    public function setCommentaire(?string $commentaire): static
-    {
-        $this->commentaire = $commentaire;
-        return $this;
-    }
-
-    public function getNomBeneficiaire(): string
-    {
-        if ($this->client) {
-            return $this->client->getNom();
-        }
-
-        if ($this->fournisseur) {
-            return $this->fournisseur->getNom();
-        }
-
-        return 'N/A';
-    }
-
-    // src/Entity/Paiement.php
-
-    public function getBeneficiaire(): ?string
-    {
-        return $this->getNomBeneficiaire(); // Utilise la méthode existante
-    }
-
-    public function getTotalPaiements(): float
-    {
-        $beneficiaire = $this->client ?? $this->fournisseur;
-        if (!$beneficiaire) {
-            return 0;
-        }
-
-        return array_reduce(
-            $beneficiaire->getPaiements()->toArray(),
-            fn(float $total, Paiement $p) => $total + $p->getMontant(),
-            0
-        );
-    }
-
-    // src/Entity/Paiement.php
-    public function getCommandeAssociee(): ?string
-    {
-        if ($this->getCommandeVente()) {
-            return 'Vente #' . $this->getCommandeVente()->getId();
-        }
-
-        if ($this->getCommandeAchat()) {
-            return 'Achat #' . $this->getCommandeAchat()->getId();
-        }
-
-        return 'Aucune';
-    }
-    public function getTypeAssocie(): string
-    {
-        return $this->commandeVente ? 'Client' : ($this->commandeAchat ? 'Fournisseur' : 'Inconnu');
-    }
-
-
-
-    public function validateClientOrFournisseur(ExecutionContextInterface $context): void
-    {
-        if (!$this->client && !$this->fournisseur) {
-            $context->buildViolation('Veuillez sélectionner un client ou un fournisseur.')
-                ->atPath('client')
-                ->addViolation();
-        }
-
-        if ($this->client && $this->fournisseur) {
-            $context->buildViolation('Vous ne pouvez pas sélectionner à la fois un client et un fournisseur.')
-                ->atPath('client')
-                ->addViolation();
-        }
-    }
-    #[ORM\ManyToOne(targetEntity: CommandeAchat::class, inversedBy: 'paiements')]
-    #[ORM\JoinColumn(nullable: true)]
-    private ?CommandeAchat $commandeAchat = null;
-
-    #[ORM\ManyToOne(targetEntity: CommandeVente::class, inversedBy: 'paiements')]
-    #[ORM\JoinColumn(nullable: true)]
-    private ?CommandeVente $commandeVente = null;
     public function getCommandeAchat(): ?CommandeAchat
     {
         return $this->commandeAchat;
@@ -205,44 +140,118 @@ class Paiement
         return $this;
     }
 
-    public function getTypePaiement(): string
+    public function getNomBeneficiaire(): string
     {
-        if ($this->commandeVente) {
-            return 'Client';
-        } elseif ($this->commandeAchat) {
-            return 'Fournisseur';
+        if ($this->client) {
+            return $this->client->getNom();
         }
 
-        return $this->typePaiement; // Retourne la valeur stockée si aucune commande associée
+        if ($this->fournisseur) {
+            return $this->fournisseur->getNom();
+        }
+
+        return 'N/A';
     }
-    public function setTypePaiement(?string $typePaiement): self
+
+    public function getBeneficiaire(): ?string
+    {
+        return $this->getNomBeneficiaire();
+    }
+
+    public function getCommandeAssociee(): ?string
+    {
+        if ($this->commandeVente) {
+            return 'Vente #' . $this->commandeVente->getId();
+        }
+
+        if ($this->commandeAchat) {
+            return 'Achat #' . $this->commandeAchat->getId();
+        }
+
+        return 'Aucune';
+    }
+
+    public function getTypeAssocie(): string
+    {
+        return $this->commandeVente ? 'Client' : ($this->commandeAchat ? 'Fournisseur' : 'Inconnu');
+    }
+
+    public function getTypePaiement(): ?string
+    {
+        return $this->typePaiement;
+    }
+
+
+    public function setTypePaiement(?string $typePaiement): static
     {
         $this->typePaiement = $typePaiement;
         return $this;
     }
-    // src/Entity/Paiement.php
+
+    public function getTotalPaiements(): float
+    {
+        $beneficiaire = $this->client ?? $this->fournisseur;
+
+        if (!$beneficiaire || !method_exists($beneficiaire, 'getPaiements')) {
+            return 0;
+        }
+
+        return array_reduce(
+            $beneficiaire->getPaiements()->toArray(),
+            fn(float $total, Paiement $p) => $total + $p->getMontant(),
+            0
+        );
+    }
+
     public function getResteAPayer(): ?float
     {
-        $commande = $this->getCommandeVente() ?? $this->getCommandeAchat();
+        $commande = $this->commandeVente ?? $this->commandeAchat;
+
         if (!$commande) {
             return null;
         }
 
         $totalCommande = $commande->getTotalCommande();
+
         $montantPaye = array_reduce(
             $commande->getPaiements()->toArray(),
             fn(float $total, Paiement $p) => $total + $p->getMontant(),
             0
         );
-
-        return max($totalCommande - $montantPaye, 0); // Ne pas retourner de valeur négative
+        dump([
+            'totalCommande' => $totalCommande,
+            'montantPaye' => $montantPaye,
+            'reste' => $totalCommande - $montantPaye,
+        ]);
+        return max($totalCommande - $montantPaye, 0);
     }
+
     public function isLieACommande(): bool
     {
         return $this->commandeVente !== null || $this->commandeAchat !== null;
     }
+
+    public function validateClientOrFournisseur(ExecutionContextInterface $context): void
+    {
+        if (!$this->client && !$this->fournisseur) {
+            $context->buildViolation('Veuillez sélectionner un client ou un fournisseur.')
+                ->atPath('client')
+                ->addViolation();
+        }
+
+        if ($this->client && $this->fournisseur) {
+            $context->buildViolation('Vous ne pouvez pas sélectionner à la fois un client et un fournisseur.')
+                ->atPath('client')
+                ->addViolation();
+        }
+    }
+
     public function __toString(): string
     {
-        return sprintf('Paiement #%d - %s - %.2f€', $this->id, $this->getDate()?->format('d/m/Y') ?? 'N/A', $this->montant ?? 0);
+        $date = $this->getDate()?->format('d/m/Y') ?? 'N/A';
+        $montant = $this->montant ?? 0;
+        $id = $this->id ?? 'N/A';
+
+        return sprintf('Paiement #%s - %s - %.2f€', $id, $date, $montant);
     }
 }

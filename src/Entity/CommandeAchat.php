@@ -176,6 +176,20 @@ class CommandeAchat
     {
         return $this->paiements;
     }
+    public function getEtatPaiement(): string
+    {
+        $total = $this->getTotalCommande() ?? 0;
+        $paye = $this->getMontantTotalPaye() ?? 0;
+
+        if ($paye >= $total) {
+            return 'payée';
+        } elseif ($paye > 0) {
+            return 'partielle';
+        } else {
+            return 'impayée';
+        }
+    }
+
     public function __toString(): string
     {
         return 'Achat #' . $this->getId(); // ou un champ pertinent comme fournisseur ou date
