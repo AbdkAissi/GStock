@@ -1,7 +1,7 @@
 import './bootstrap.js'; // Si tu as un fichier bootstrap.js personnalisé
 import 'bootstrap'; // Charger Bootstrap en JS (le CSS peut être inclus via SCSS)
 import './styles/app.scss'; // Ton SCSS personnalisé
-import './paiement.js';
+import './js/paiement.js';
 import Swal from 'sweetalert2';
 
 
@@ -12,10 +12,6 @@ import '@fortawesome/fontawesome-free/js/fontawesome';
 import '@fortawesome/fontawesome-free/js/solid';
 import '@fortawesome/fontawesome-free/js/regular';
 import '@fortawesome/fontawesome-free/js/brands';
-
-
-
-
 
 // Attente du chargement complet du DOM
 document.addEventListener('DOMContentLoaded', function() {

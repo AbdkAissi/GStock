@@ -155,21 +155,12 @@ class Paiement
 
         return 'Aucune';
     }
-
-    public function getCommandeAssocieeAffichage(): string
+    public function getTypeAssocie(): string
     {
-        if ($this->commandeVente) {
-            $id = $this->commandeVente->getId();
-            return '<a href="/admin/commande-vente/' . $id . '" target="_blank" style="color:#0d6efd;"> Vente #' . $id . '</a>';
-        }
-
-        if ($this->commandeAchat) {
-            $id = $this->commandeAchat->getId();
-            return '<a href="/admin/commande-achat/' . $id . '" target="_blank" style="color:#0d6efd;"> Achat #' . $id . '</a>';
-        }
-
-        return '<span style="color:gray;">Non associée</span>';
+        return $this->commandeVente ? 'Client' : ($this->commandeAchat ? 'Fournisseur' : 'Inconnu');
     }
+
+
 
     public function validateClientOrFournisseur(ExecutionContextInterface $context): void
     {
@@ -249,5 +240,9 @@ class Paiement
     public function isLieACommande(): bool
     {
         return $this->commandeVente !== null || $this->commandeAchat !== null;
+    }
+    public function __toString(): string
+    {
+        return sprintf('Paiement #%d - %s - %.2f€', $this->id, $this->getDate()?->format('d/m/Y') ?? 'N/A', $this->montant ?? 0);
     }
 }

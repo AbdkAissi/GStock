@@ -36,7 +36,7 @@ class ProduitCrudController extends AbstractCrudController
                     return sprintf('<span style="color:%s; font-weight:bold;">%d</span>', $color, $value);
                 })
                 ->setTemplatePath('admin/fields/html_field.html.twig'),
-            IntegerField::new('seuilAlerte', 'Seuil d\'alerte'),
+            IntegerField::new('seuilAlerte', 'Seuil d\'alerte')->setSortable(false),
         ];
     }
 }

@@ -1,132 +1,148 @@
 <?php
 // src/Controller/Admin/ApiController.php
+
 namespace App\Controller\Admin;
 
 use App\Repository\CommandeAchatRepository;
 use App\Repository\CommandeVenteRepository;
+use App\Repository\ClientRepository;
+use App\Repository\FournisseurRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
-use App\Repository\ClientRepository;
-use App\Repository\FournisseurRepository;
 
 class ApiController extends AbstractController
 {
-    #[Route('/admin/api/commandes/achat/{id}', name: 'api_commandes_achat_par_fournisseur')]
-    public function commandesAchatParFournisseur(int $id, CommandeAchatRepository $repo): JsonResponse
-    {
-        $commandes = $repo->findBy(['fournisseur' => $id]);
-        return $this->json(array_map(fn($c) => [
-            'id' => $c->getId(),
-            'label' => 'Commande #' . $c->getId(),
-        ], $commandes));
+    private CommandeAchatRepository $commandeAchatRepository;
+    private CommandeVenteRepository $commandeVenteRepository;
+    private ClientRepository $clientRepository;
+    private FournisseurRepository $fournisseurRepository;
+
+    public function __construct(
+        CommandeAchatRepository $commandeAchatRepository,
+        CommandeVenteRepository $commandeVenteRepository,
+        ClientRepository $clientRepository,
+        FournisseurRepository $fournisseurRepository
+    ) {
+        $this->commandeAchatRepository = $commandeAchatRepository;
+        $this->commandeVenteRepository = $commandeVenteRepository;
+        $this->clientRepository = $clientRepository;
+        $this->fournisseurRepository = $fournisseurRepository;
     }
 
-    #[Route('/admin/api/commandes/vente/{id}', name: 'api_commandes_vente_par_client')]
-    public function commandesVenteParClient(int $id, CommandeVenteRepository $repo): JsonResponse
+    #[Route('/admin/api/commandes/client/{clientId}', name: 'api_commandes_client', methods: ['GET'])]
+    public function getCommandesClient(int $clientId): JsonResponse
     {
-        $commandes = $repo->findBy(['client' => $id]);
-        return $this->json(array_map(fn($c) => [
-            'id' => $c->getId(),
-            'label' => 'Commande #' . $c->getId(),
-        ], $commandes));
-    }
-    #[Route('/admin/api/commandes/{type}/{id}', name: 'admin_api_commandes', methods: ['GET'])]
-    public function getCommandesParDestinataire(string $type, int $id, CommandeAchatRepository $achatRepo, CommandeVenteRepository $venteRepo): JsonResponse
-    {
-        if (empty($commandes)) {
-            return $this->json(['error' => 'Aucune commande trouvée pour ce ' . $type], 404);
-        }
+        $commandes = $this->commandeVenteRepository->findBy([
+            'client' => $clientId,
+            'etat' => 'valide',
+        ]);
 
-        if ($type === 'client') {
-            $commandes = $venteRepo->findBy(['client' => $id]);
-        } elseif ($type === 'fournisseur') {
-            $commandes = $achatRepo->findBy(['fournisseur' => $id]);
-        } else {
-            return $this->json([], 400);
-        }
-
-        $data = array_map(fn($cmd) => [
-            'id' => $cmd->getId(),
-            'label' => 'Commande #' . $cmd->getId() . ' du ' . $cmd->getDate()->format('d/m/Y'),
-        ], $commandes);
+        $data = array_map(function ($commande) {
+            return [
+                'id' => $commande->getId(),
+                'label' => 'Commande #' . $commande->getId() . ' du ' . $commande->getDate()->format('d/m/Y'),
+            ];
+        }, $commandes);
 
         return $this->json($data);
     }
 
-    #[Route('/admin/api/reste-a-payer/vente/{id}', name: 'api_reste_a_payer_vente')]
-    public function resteAPayerVente($id, CommandeVenteRepository $repo): JsonResponse
+    #[Route('/admin/api/commandes/fournisseur/{fournisseurId}', name: 'api_commandes_fournisseur', methods: ['GET'])]
+    public function getCommandesFournisseur(int $fournisseurId): JsonResponse
     {
-        $commande = $repo->find($id);
+        $commandes = $this->commandeAchatRepository->findBy([
+            'fournisseur' => $fournisseurId,
+            'etat' => 'valide',
+        ]);
+
+        $data = array_map(function ($commande) {
+            return [
+                'id' => $commande->getId(),
+                'label' => 'Commande #' . $commande->getId() . ' du ' . $commande->getDate()->format('d/m/Y'),
+            ];
+        }, $commandes);
+
+        return $this->json($data);
+    }
+
+    #[Route('/admin/api/reste-a-payer/vente/{id}', name: 'api_reste_a_payer_vente', methods: ['GET'])]
+    public function resteAPayerVente(int $id): JsonResponse
+    {
+        $commande = $this->commandeVenteRepository->find($id);
 
         if (!$commande) {
             return $this->json(['error' => 'Commande non trouvée'], 404);
         }
 
-        // Calcul du montant total de la commande
         $totalCommande = $commande->getTotalCommande();
-
-        // Calcul du montant déjà payé
         $montantPaye = 0;
+
         foreach ($commande->getPaiements() as $paiement) {
             $montantPaye += $paiement->getMontant();
         }
 
-        // Calcul du reste à payer
         $resteAPayer = max($totalCommande - $montantPaye, 0);
 
         return $this->json([
             'totalCommande' => $totalCommande,
             'montantPaye' => $montantPaye,
-            'resteAPayer' => $resteAPayer
+            'resteAPayer' => $resteAPayer,
         ]);
     }
 
-    #[Route('/admin/api/reste-a-payer/achat/{id}', name: 'api_reste_a_payer_achat')]
-    public function resteAPayerAchat($id, CommandeAchatRepository $repo): JsonResponse
+    #[Route('/admin/api/reste-a-payer/achat/{id}', name: 'api_reste_a_payer_achat', methods: ['GET'])]
+    public function resteAPayerAchat(int $id): JsonResponse
     {
-        $commande = $repo->find($id);
+        $commande = $this->commandeAchatRepository->find($id);
 
         if (!$commande) {
             return $this->json(['error' => 'Commande non trouvée'], 404);
         }
 
-        // Calcul du montant total de la commande
         $totalCommande = $commande->getTotalCommande();
-
-        // Calcul du montant déjà payé
         $montantPaye = 0;
+
         foreach ($commande->getPaiements() as $paiement) {
             $montantPaye += $paiement->getMontant();
         }
 
-        // Calcul du reste à payer
         $resteAPayer = max($totalCommande - $montantPaye, 0);
 
         return $this->json([
             'totalCommande' => $totalCommande,
             'montantPaye' => $montantPaye,
-            'resteAPayer' => $resteAPayer
+            'resteAPayer' => $resteAPayer,
         ]);
     }
-    //************
-    #[Route('/admin/api/clients', name: 'api_liste_clients')]
-    public function getClients(ClientRepository $repo): JsonResponse
+
+    #[Route('/admin/api/clients', name: 'api_liste_clients', methods: ['GET'])]
+    public function getClients(): JsonResponse
     {
-        $clients = $repo->findAll();
-        return $this->json(array_map(fn($c) => [
-            'id' => $c->getId(),
-            'nom' => $c->getNom(),
-        ], $clients));
+        $clients = $this->clientRepository->findAll();
+
+        $data = array_map(function ($client) {
+            return [
+                'id' => $client->getId(),
+                'nom' => $client->getNom(),
+            ];
+        }, $clients);
+
+        return $this->json($data);
     }
 
-    #[Route('/admin/api/fournisseurs', name: 'api_liste_fournisseurs')]
-    public function getFournisseurs(FournisseurRepository $repo): JsonResponse
+    #[Route('/admin/api/fournisseurs', name: 'api_liste_fournisseurs', methods: ['GET'])]
+    public function getFournisseurs(): JsonResponse
     {
-        $fournisseurs = $repo->findAll();
-        return $this->json(array_map(fn($f) => [
-            'id' => $f->getId(),
-            'nom' => $f->getNom(),
-        ], $fournisseurs));
+        $fournisseurs = $this->fournisseurRepository->findAll();
+
+        $data = array_map(function ($fournisseur) {
+            return [
+                'id' => $fournisseur->getId(),
+                'nom' => $fournisseur->getNom(),
+            ];
+        }, $fournisseurs);
+
+        return $this->json($data);
     }
 }

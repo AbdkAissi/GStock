@@ -33,10 +33,10 @@ class FournisseurCrudController extends AbstractCrudController
             IdField::new('id')->hideOnForm(),
 
             TextField::new('nom', 'Nom'),
-            TextEditorField::new('adresse', 'Adresse'),
+            TextEditorField::new('adresse', 'Adresse')->setSortable(false),
 
             // ➕ Ajout du champ téléphone cliquable
-            TextField::new('contact', 'Téléphone')
+            TextField::new('contact', 'Téléphone')->setSortable(false)
                 ->formatValue(fn($value, $entity) => "<a href='tel:$value'>$value</a>")
                 ->renderAsHtml(),
 

@@ -1,63 +1,71 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Mon projet Symfony{% endblock %}</title>
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>
+			{% block title %}Mon projet Symfony
+			{% endblock %}
+		</title>
 
-    {# Librairies externes #}
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+		{# Librairies externes #}
+		<link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+		<link
+		rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-    {# CSS compilés par Webpack Encore #}
-    {% block stylesheets %}
-        {{ encore_entry_link_tags('admin') }} <!-- Ce fichier est généré par Webpack -->
-        {{ encore_entry_link_tags('auto-prix-vente') }} <!-- Si tu utilises ce fichier -->
-        {{ encore_entry_link_tags('auto-prix-achat') }} <!-- Si tu utilises ce fichier -->
-    {% endblock %}
-</head>
-<body>
-    {% if app.user %}
-    <nav class="navbar navbar-expand-lg navbar-light bg-light mb-3">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="#">MonApp</a>
-            <div class="collapse navbar-collapse">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ path('profile_edit') }}">Mon profil</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ path('change_password') }}">Changer mot de passe</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-danger" href="{{ path('app_logout') }}">Déconnexion</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-    {% endif %}
+		{# CSS compilés par Webpack Encore #}
+		{% block stylesheets %}
+			{{ encore_entry_link_tags('admin') }}
+			<!-- Ce fichier est généré par Webpack -->
+			{{ encore_entry_link_tags('auto-prix-vente') }}
+			<!-- Si tu utilises ce fichier -->
+			{{ encore_entry_link_tags('auto-prix-achat') }}
+			<!-- Si tu utilises ce fichier -->
+		{% endblock %}
+	</head>
+	<body>
+		{% if app.user %}
+			<nav class="navbar navbar-expand-lg navbar-light bg-light mb-3">
+				<div class="container-fluid">
+					<a class="navbar-brand" href="#">MonApp</a>
+					<div class="collapse navbar-collapse">
+						<ul class="navbar-nav ms-auto">
+							<li class="nav-item">
+								<a class="nav-link" href="{{ path('profile_edit') }}">Mon profil</a>
+							</li>
+							<li class="nav-item">
+								<a class="nav-link" href="{{ path('change_password') }}">Changer mot de passe</a>
+							</li>
+							<li class="nav-item">
+								<a class="nav-link text-danger" href="{{ path('app_logout') }}">Déconnexion</a>
+							</li>
+						</ul>
+					</div>
+				</div>
+			</nav>
+		{% endif %}
 
-    {# Affichage des messages flash #}
-    {% for label, messages in app.flashes %}
-        {% for message in messages %}
-            <div class="flash-message alert alert-{{ label }}" role="alert" data-type="{{ label }}" data-message="{{ message|e('js') }}">
-                {{ message }}
-            </div>
-        {% endfor %}
-    {% endfor %}
+		{# Affichage des messages flash #}
+		{% for label, messages in app.flashes %}
+			{% for message in messages %}
+				<div class="flash-message alert alert-{{ label }}" role="alert" data-type="{{ label }}" data-message="{{ message|e('js') }}">
+					{{ message }}
+				</div>
+			{% endfor %}
+		{% endfor %}
 
-    {# Contenu principal #}
-    {% block body %}{% endblock %}
+		{# Contenu principal #}
+		{% block body %}{% endblock %}
 
-    {# JS compilés par Webpack Encore #}
-    {% block javascripts %}
-        {{ encore_entry_script_tags('app') }}
-        {{ encore_entry_script_tags('admin') }} <!-- JS généré par Webpack -->
-        {{ encore_entry_script_tags('auto-prix-vente') }}
-        {{ encore_entry_script_tags('auto-prix-achat') }}
-        {{ encore_entry_script_tags('paiement') }}
+		{# JS compilés par Webpack Encore #}
+		{% block javascripts %}
+			{{ encore_entry_script_tags('app') }}
+			{{ encore_entry_script_tags('admin') }}
+			<!-- JS généré par Webpack -->
+			{{ encore_entry_script_tags('auto-prix-vente') }}
+			{{ encore_entry_script_tags('auto-prix-achat') }}
+			{{ encore_entry_script_tags('paiement') }}
 
-    {% endblock %}
-</body>
+		{% endblock %}
+	</body>
 </html>

@@ -1,14 +1,13 @@
-// Importation de Bootstrap avec @use (pas besoin de @import)
-@use "~bootstrap/scss/functions" as *;
-@use "~bootstrap/scss/variables" as *;
-@use "~bootstrap/scss/mixins" as *;
-@use '~bootstrap/scss/bootstrap' as bs;  // C'est l'importation principale de Bootstrap
-@use 'custom';  // Si tu as un fichier custom.scss
+// ✅ Import complet de Bootstrap avec tous les mixins disponibles
+@use "~bootstrap/scss/bootstrap" as *;
 
-// Importation de Animate.css si installé via npm
-@use "~animate.scss/animate" as *;  // Cela permet d'importer correctement Animate.css
+// ✅ Import de Animate.css (version CSS classique)
+@import "~animate.css/animate.css";
 
-// Tes styles personnalisés
+// ✅ Si tu as un fichier personnalisé "custom.scss"
+//@import "custom";
+
+// ✅ Tes styles personnalisés
 body {
     background-color: #f8f9fa;
     font-family: 'Segoe UI', sans-serif;

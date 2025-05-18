@@ -19,6 +19,7 @@ use App\Repository\ClientRepository;
 use App\Repository\CommandeVenteRepository;
 use App\Repository\CommandeAchatRepository;
 use App\Controller\Admin\CommandeVenteCrudController;
+use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 
 class DashboardController extends AbstractDashboardController
 {
@@ -27,8 +28,10 @@ class DashboardController extends AbstractDashboardController
         private ProduitRepository $produitRepository,
         private ClientRepository $clientRepository,
         private CommandeVenteRepository $commandeVenteRepository,
-        private CommandeAchatRepository $commandeAchatRepository
+        private CommandeAchatRepository $commandeAchatRepository,
+        private AdminUrlGenerator $adminUrlGenerator, // ajoute ça
     ) {}
+
 
     // Route principale de l'admin : /admin
     #[Route('/admin', name: 'app_dashboard')]
@@ -39,13 +42,21 @@ class DashboardController extends AbstractDashboardController
         $clientsCount = $this->clientRepository->count([]);
         $commandesvCount = $this->commandeVenteRepository->count([]);
         $commandesaCount = $this->commandeAchatRepository->count([]);
-
+        // Génère les URLs vers les pages CRUD correspondantes
+        $urls = [
+            'produits' => $this->adminUrlGenerator->setController(\App\Controller\Admin\ProduitCrudController::class)->generateUrl(),
+            'clients' => $this->adminUrlGenerator->setController(\App\Controller\Admin\ClientCrudController::class)->generateUrl(),
+            'commandes_vente' => $this->adminUrlGenerator->setController(\App\Controller\Admin\CommandeVenteCrudController::class)->generateUrl(),
+            'commandes_achat' => $this->adminUrlGenerator->setController(\App\Controller\Admin\CommandeAchatCrudController::class)->generateUrl(),
+        ];
         // Affichage du tableau de bord avec les statistiques dans un template Twig
         return $this->render('admin/empty_dashboard.html.twig', [
             'totalProduits' => $produitsCount,
             'totalClients' => $clientsCount,
             'totalCommandesVente' => $commandesvCount,
-            'totalCommandesAchat' => $commandesaCount
+            'totalCommandesAchat' => $commandesaCount,
+            'urls' => $urls,
+
         ]);
     }
 

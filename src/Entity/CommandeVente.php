@@ -204,6 +204,19 @@ HTML;
         }
         return $total;
     }
+    public function getMontantTotalPaye(): float
+    {
+        $total = 0;
+        foreach ($this->getPaiements() as $paiement) {
+            $total += $paiement->getMontant();
+        }
+        return $total;
+    }
+
+    public function getResteAPayer(): float
+    {
+        return $this->getTotalCommande() - $this->getMontantTotalPaye();
+    }
 
     public function getPaiements(): Collection
     {

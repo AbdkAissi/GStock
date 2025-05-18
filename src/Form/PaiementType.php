@@ -14,6 +14,11 @@ use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
+use Symfony\Bridge\Doctrine\Form\Type\EntityType;
+use App\Entity\Client;
+use App\Entity\Fournisseur;
+use App\Entity\CommandeAchat;
+use App\Entity\CommandeVente;
 
 class PaiementType extends AbstractType
 {
@@ -41,28 +46,58 @@ class PaiementType extends AbstractType
                 'required' => false,
                 'label' => 'Commentaire',
             ])
-            ->add('client', HiddenType::class, [
-                'required' => false,
-                'mapped' => true,
-            ])
-            ->add('fournisseur', HiddenType::class, [
-                'required' => false,
-                'mapped' => true,
-            ])
 
-            ->add('save', SubmitType::class, [
-                'label' => 'Enregistrer',
-            ])
             ->add('typeDestinataire', ChoiceType::class, [
-                'mapped' => false, // ✅ important
+                'mapped' => false,
                 'required' => true,
                 'choices' => [
                     'Client' => 'client',
                     'Fournisseur' => 'fournisseur',
                 ],
                 'label' => 'Type de destinataire',
+            ])
+
+            // Champs client et fournisseur en EntityType, non obligatoires, visibles
+            ->add('client', EntityType::class, [
+                'class' => Client::class,
+                'choice_label' => 'nom',
+                'placeholder' => '-- Choisir client --',
+                'required' => false,
+                'label' => 'Client',
+                'mapped' => true,
+            ])
+            ->add('fournisseur', EntityType::class, [
+                'class' => Fournisseur::class,
+                'choice_label' => 'nom',
+                'placeholder' => '-- Choisir fournisseur --',
+                'required' => false,
+                'label' => 'Fournisseur',
+                'mapped' => true,
+            ])
+
+            // Champs commande Achat / Vente liés
+            ->add('commandeAchat', EntityType::class, [
+                'class' => CommandeAchat::class,
+                'choice_label' => 'id', // ou un champ label plus parlant
+                'placeholder' => '-- Sélectionnez commande achat --',
+                'required' => false,
+                'label' => 'Commande Achat',
+                'mapped' => true,
+            ])
+            ->add('commandeVente', EntityType::class, [
+                'class' => CommandeVente::class,
+                'choice_label' => 'id', // ou un champ label plus parlant
+                'placeholder' => '-- Sélectionnez commande vente --',
+                'required' => false,
+                'label' => 'Commande Vente',
+                'mapped' => true,
+            ])
+
+            ->add('save', SubmitType::class, [
+                'label' => 'Enregistrer',
             ]);
     }
+
 
     public function configureOptions(OptionsResolver $resolver): void
     {

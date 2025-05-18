@@ -119,6 +119,19 @@ class CommandeAchat
         }
         return $this;
     }
+    public function getMontantTotalPaye(): float
+    {
+        $total = 0;
+        foreach ($this->paiements as $paiement) {
+            $total += $paiement->getMontant();
+        }
+        return $total;
+    }
+
+    public function getResteAPayer(): float
+    {
+        return ($this->getTotalCommande() ?? 0) - $this->getMontantTotalPaye();
+    }
 
     public function getTotalCommande(): float
     {

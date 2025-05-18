@@ -21,10 +21,13 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
 use App\Entity\Client;
 use App\Entity\Fournisseur;
+use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 
 
 class PaiementCrudController extends AbstractCrudController
 {
+    public function __construct(private AdminUrlGenerator $adminUrlGenerator) {}
+
     public static function getEntityFqcn(): string
     {
         return Paiement::class;
@@ -58,14 +61,11 @@ class PaiementCrudController extends AbstractCrudController
                 ])
                 ->setFormTypeOption('attr', ['id' => 'type-paiement'])
                 ->setFormTypeOption('row_attr', ['data-field' => 'type-paiement'])
-
-                // Ajout du formatValue pour afficher correctement les valeurs dans la liste
-                ->formatValue(function ($value, $entity) {
-                    $types = [
+                ->formatValue(function ($value) {
+                    return [
                         'client' => 'Client',
                         'fournisseur' => 'Fournisseur'
-                    ];
-                    return $types[$value] ?? $value;
+                    ][$value] ?? $value;
                 }),
 
             ChoiceField::new('moyenPaiement', 'Méthode')->setChoices([
@@ -73,91 +73,84 @@ class PaiementCrudController extends AbstractCrudController
                 'Carte bancaire' => 'carte_bancaire',
                 'Chèque' => 'cheque',
                 'Virement bancaire' => 'virement_bancaire',
-            ])->allowMultipleChoices(false)
+            ])
+                ->allowMultipleChoices(false)
                 ->renderExpanded(false)
-                // Ajout du formatValue pour afficher correctement les valeurs dans la liste
-                ->formatValue(function ($value, $entity) {
-                    $moyens = [
+                ->formatValue(function ($value) {
+                    return [
                         'especes' => 'Espèces',
                         'carte_bancaire' => 'Carte bancaire',
                         'cheque' => 'Chèque',
                         'virement_bancaire' => 'Virement bancaire'
-                    ];
-                    return $moyens[$value] ?? $value;
+                    ][$value] ?? $value;
                 }),
+
             MoneyField::new('montant', 'Montant')
                 ->setCurrency('MAD')
                 ->setStoredAsCents(false),
         ];
-        TextField::new('commandeAssociee', 'Commande associée')
-            ->setSortable(false)
-            ->formatValue(function ($value, $entity) {
-                $url = $entity->getCommandeAssocieeUrl();
-                if ($url) {
-                    return sprintf('<a href="%s">%s</a>', $url, $value);
-                }
-                return $value;
-            });
-        if ($pageName === Crud::PAGE_INDEX) {
-            $fields[] = TextField::new('commandeAssocieeAffichage', 'Commande associée')
-                ->renderAsHtml();
+
+        // Affichage du lien vers la commande associée
+        if ($pageName === Crud::PAGE_INDEX || $pageName === Crud::PAGE_DETAIL) {
+            $fields[] = TextField::new('commandeAssociee', 'Commande associée')
+                ->onlyOnIndex()
+                ->renderAsHtml()
+                ->formatValue(function ($value, $entity) {
+                    if ($entity->getCommandeVente()) {
+                        $url = $this->adminUrlGenerator
+                            ->setController(CommandeVenteCrudController::class)
+                            ->setAction('detail')
+                            ->setEntityId($entity->getCommandeVente()->getId())
+                            ->generateUrl();
+                        return sprintf('<a href="%s" target="_blank" style="color:#0d6efd;">Commande Vente #%d</a>', $url, $entity->getCommandeVente()->getId());
+                    } elseif ($entity->getCommandeAchat()) {
+                        $url = $this->adminUrlGenerator
+                            ->setController(CommandeAchatCrudController::class)
+                            ->setAction('detail')
+                            ->setEntityId($entity->getCommandeAchat()->getId())
+                            ->generateUrl();
+                        return sprintf('<a href="%s" target="_blank" style="color:#0d6efd;">Commande Achat #%d</a>', $url, $entity->getCommandeAchat()->getId());
+                    }
+                    return 'Aucune';
+                })
+                ->setSortable(false);
         }
 
-        if ($pageName === Crud::PAGE_DETAIL) {
-            $fields[] = TextField::new('commandeAssocieeAffichage', 'Commande associée')
-                ->renderAsHtml();
-        }
-
-
-        // Ajouts pour formulaire de création/édition
+        // Champs pour création / édition
         if ($pageName === Crud::PAGE_NEW || $pageName === Crud::PAGE_EDIT) {
             $fields = array_merge($fields, [
                 AssociationField::new('client')
                     ->hideOnIndex()
-                    ->setFormTypeOption(
-                        'row_attr',
-                        ['data-role' => 'client-row']
-                    ),
+                    ->setFormTypeOption('row_attr', ['data-role' => 'client-row']),
 
                 AssociationField::new('fournisseur')
                     ->hideOnIndex()
-                    ->setFormTypeOption(
-                        'row_attr',
-                        ['data-role' => 'fournisseur-row']
-                    ),
+                    ->setFormTypeOption('row_attr', ['data-role' => 'fournisseur-row']),
 
                 AssociationField::new('commandeVente')
                     ->setLabel('Commande de vente')
-                    ->onlyOnForms(),
+                    ->onlyOnForms()
+                    ->setFormTypeOption('row_attr', ['data-role' => 'commande-vente-row']),
 
                 AssociationField::new('commandeAchat')
                     ->setLabel('Commande d\'achat')
-                    ->onlyOnForms(),
+                    ->onlyOnForms()
+                    ->setFormTypeOption('row_attr', ['data-role' => 'commande-achat-row']),
 
                 TextEditorField::new('commentaire'),
             ]);
         }
 
-        // Pour la vue index
+        // Affichage du nom du bénéficiaire dans l'index
         if ($pageName === Crud::PAGE_INDEX) {
             $fields[] = AssociationField::new('client')
                 ->setLabel('Nom')
                 ->formatValue(function ($value, $entity) {
-                    return $entity->getBeneficiaire(); // méthode personnalisée pour afficher nom
+                    return $entity->getBeneficiaire();
                 });
-
-            /* $fields[] = TextField::new('commandeAssociee', 'Commande associée')
-                ->formatValue(function ($value, $entity) {
-                    if ($entity->getCommandeVente()) {
-                        return 'Vente #' . $entity->getCommandeVente()->getId();
-                    } elseif ($entity->getCommandeAchat()) {
-                        return 'Achat #' . $entity->getCommandeAchat()->getId();
-                    }
-                    return 'Aucune';
-                });*/
         }
 
-        // Pour la vue détail
+        // Affichage de l’historique en détail
         if ($pageName === Crud::PAGE_DETAIL) {
             $fields[] = TextField::new('resumePaiements')
                 ->setLabel('Historique')

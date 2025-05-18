@@ -12,6 +12,7 @@
         "core-js": "^3.38.0",
         "file-loader": "^6.0.0",
         "postcss-loader": "^8.1.1",
+        "prettier": "^3.5.3",
         "regenerator-runtime": "^0.13.9",
         "sass": "^1.87.0",
         "sass-loader": "^16.0.5",
@@ -30,8 +31,26 @@
     "dependencies": {
         "@popperjs/core": "^2.11.8",
         "animate.css": "^4.1.1",
+        "animate.scss": "^0.0.6",
         "bootstrap": "^5.3.6",
         "jquery": "^3.7.1",
-        "sweetalert2": "^11.21.0"
-    }
+        "sweetalert2": "^11.6.13"
+    },
+    "name": "gs_stock",
+    "version": "1.0.0",
+    "main": "webpack.config.js",
+    "directories": {
+        "test": "tests"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/AbdkAissi/GStock.git"
+    },
+    "keywords": [],
+    "author": "",
+    "bugs": {
+        "url": "https://github.com/AbdkAissi/GStock/issues"
+    },
+    "homepage": "https://github.com/AbdkAissi/GStock#readme",
+    "description": ""
 }

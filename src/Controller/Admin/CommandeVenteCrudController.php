@@ -22,6 +22,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
 
 class CommandeVenteCrudController extends AbstractCrudController
 {
@@ -77,9 +78,10 @@ class CommandeVenteCrudController extends AbstractCrudController
             ->setPageTitle(Crud::PAGE_DETAIL, fn($entity) => 'Détails de la commande #' . $entity->getId());
     }
 
+
     public function configureFields(string $pageName): iterable
     {
-        return [
+        $fields = [
             IdField::new('id')->hideOnForm(),
             DateField::new('dateCommande', 'Date commande')->setFormat('dd/MM/yyyy HH:mm'),
             ChoiceField::new('etat', 'État')
@@ -90,12 +92,9 @@ class CommandeVenteCrudController extends AbstractCrudController
                 ])
                 ->renderAsBadges([
                     'en_attente' => 'warning',
-                    'réceptionnée' => 'success',
+                    'receptionnee' => 'success',
                     'annulee' => 'danger',
                 ]),
-            Field::new('totalCommande', 'Total de la commande')
-                ->onlyOnDetail()
-                ->formatValue(fn($value, $entity) => number_format($entity->getTotalCommande(), 2, ',', ' ') . ' MAD'),
             AssociationField::new('client')
                 ->setFormTypeOption('choice_label', 'nom'),
             CollectionField::new('lignesCommandeVente', 'Lignes de commande')
@@ -108,6 +107,25 @@ class CommandeVenteCrudController extends AbstractCrudController
                 ->setTemplatePath('admin/fields/lignes_commande.html.twig')
                 ->setEntryIsComplex(true),
         ];
+
+        if ($pageName === Crud::PAGE_DETAIL) {
+            $fields[] = MoneyField::new('totalCommande', 'Total de la commande')
+                ->setCurrency('MAD')
+                ->formatValue(fn($value, $entity) => number_format($entity->getTotalCommande(), 2, ',', ' ') . ' MAD');
+
+            // Champ virtuel, pas présent dans l'entité
+            $fields[] = Field::new('montantTotalPaye', 'Montant payé')
+                ->onlyOnDetail()
+                ->setVirtual(true)
+                ->formatValue(fn($value, $entity) => number_format($entity->getMontantTotalPaye(), 2, ',', ' ') . ' MAD');
+
+            $fields[] = Field::new('resteAPayer', 'Reste à payer')
+                ->onlyOnDetail()
+                ->setVirtual(true)
+                ->formatValue(fn($value, $entity) => number_format($entity->getResteAPayer(), 2, ',', ' ') . ' MAD');
+        }
+
+        return $fields;
     }
 
     public function configureActions(Actions $actions): Actions
