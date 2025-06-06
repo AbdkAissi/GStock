@@ -3,6 +3,7 @@
 namespace App\Controller\Admin;
 
 use App\Entity\CommandeAchat;
+use App\Entity\StockHistorique;
 use App\Form\LigneCommandeAchatType;
 use App\Service\StockManager;
 use Doctrine\ORM\EntityManagerInterface;
@@ -89,8 +90,7 @@ class CommandeAchatCrudController extends AbstractCrudController
                     'impayée' => 'danger',
                 ]),
 
-            AssociationField::new('fournisseur')
-                ->setFormTypeOption('choice_label', 'nom'),
+            AssociationField::new('fournisseur')->setFormTypeOption('choice_label', 'nom'),
             CollectionField::new('lignesCommandeAchat', 'Lignes de commande')
                 ->setEntryType(LigneCommandeAchatType::class)
                 ->allowAdd()
@@ -103,10 +103,10 @@ class CommandeAchatCrudController extends AbstractCrudController
         ];
 
         if ($pageName === Crud::PAGE_DETAIL) {
-            // ✅ Historique des paiements
             $fields[] = AssociationField::new('paiements', 'Historique des paiements')
                 ->onlyOnDetail()
                 ->setTemplatePath('admin/fields/historique_paiements.html.twig');
+
             $fields[] = MoneyField::new('totalCommande', 'Total de la commande')
                 ->setCurrency('MAD')
                 ->formatValue(fn($value, $entity) => number_format($entity->getTotalCommande(), 2, ',', ' ') . ' MAD');
@@ -124,7 +124,6 @@ class CommandeAchatCrudController extends AbstractCrudController
 
         return $fields;
     }
-
 
     public function configureActions(Actions $actions): Actions
     {
@@ -152,9 +151,7 @@ class CommandeAchatCrudController extends AbstractCrudController
 
     public function persistEntity(EntityManagerInterface $em, $entityInstance): void
     {
-        if (!$entityInstance instanceof CommandeAchat) {
-            return;
-        }
+        if (!$entityInstance instanceof CommandeAchat) return;
 
         if ($entityInstance->getDateCommande() === null) {
             $entityInstance->setDateCommande(new \DateTimeImmutable());
@@ -162,11 +159,19 @@ class CommandeAchatCrudController extends AbstractCrudController
 
         if ($entityInstance->getEtat() === 'receptionnee') {
             foreach ($entityInstance->getLignesCommandeAchat() as $ligne) {
-                $this->stockManager->ajusterStock(
-                    $ligne->getProduit(),
-                    $ligne->getQuantite(),
-                    'achat'
-                );
+                $produit = $ligne->getProduit();
+                $quantite = $ligne->getQuantite();
+
+                $this->stockManager->ajusterStock($produit, $quantite, 'achat');
+
+                // 🔴 Ajouter l'historique
+                $historique = new StockHistorique();
+                $historique->setProduit($produit);
+                $historique->setQuantite($quantite);
+                $historique->setDate(new \DateTimeImmutable());
+                $historique->setType('achat');
+                $historique->setCommentaire('Commande achat #' . $entityInstance->getId());
+                $em->persist($historique);
             }
         }
 
@@ -175,22 +180,57 @@ class CommandeAchatCrudController extends AbstractCrudController
 
     public function updateEntity(EntityManagerInterface $em, $entityInstance): void
     {
-        if (!$entityInstance instanceof CommandeAchat) {
-            return;
-        }
+        if (!$entityInstance instanceof CommandeAchat) return;
 
         $ancienneCommande = $this->entityManager->getUnitOfWork()->getOriginalEntityData($entityInstance);
         $ancienEtat = $ancienneCommande['etat'] ?? null;
         $nouvelEtat = $entityInstance->getEtat();
 
+        // 🔁 Gestion des modifications sur une commande déjà réceptionnée
+        if ($ancienEtat === 'receptionnee' && $nouvelEtat === 'receptionnee') {
+            foreach ($entityInstance->getLignesCommandeAchat() as $ligne) {
+                $produit = $ligne->getProduit();
+                $nouvelleQuantite = $ligne->getQuantite();
+
+                // Récupérer la ligne d'origine
+                $ancienneLigne = $this->entityManager->getUnitOfWork()->getOriginalEntityData($ligne);
+                $ancienneQuantite = $ancienneLigne['quantite'] ?? 0;
+
+                $difference = $nouvelleQuantite - $ancienneQuantite;
+
+                if ($difference !== 0) {
+                    $this->stockManager->ajusterStock($produit, $difference, 'achat');
+
+                    $historique = new StockHistorique();
+                    $historique->setProduit($produit);
+                    $historique->setQuantite($difference);
+                    $historique->setDate(new \DateTimeImmutable());
+                    $historique->setType('modification');
+                    $historique->setCommentaire('Modification commande achat #' . $entityInstance->getId());
+                    $em->persist($historique);
+                }
+            }
+
+            $this->addFlash('info', 'Stock ajusté suite à la modification.');
+        }
+
+        // ❗Annulation d'une commande réceptionnée : restaurer le stock
         if ($ancienEtat === 'receptionnee' && $nouvelEtat === 'annulee') {
             foreach ($entityInstance->getLignesCommandeAchat() as $ligne) {
-                $this->stockManager->restaurerStock(
-                    $ligne->getProduit(),
-                    $ligne->getQuantite(),
-                    'achat'
-                );
+                $produit = $ligne->getProduit();
+                $quantite = $ligne->getQuantite();
+
+                $this->stockManager->restaurerStock($produit, $quantite, 'achat');
+
+                $historique = new StockHistorique();
+                $historique->setProduit($produit);
+                $historique->setQuantite(-$quantite);
+                $historique->setDate(new \DateTimeImmutable());
+                $historique->setType('annulation');
+                $historique->setCommentaire('Annulation commande achat #' . $entityInstance->getId());
+                $em->persist($historique);
             }
+
             $this->addFlash('info', 'Stock restauré pour la commande.');
         }
 
@@ -214,11 +254,19 @@ class CommandeAchatCrudController extends AbstractCrudController
         $commande->setEtat('receptionnee');
 
         foreach ($commande->getLignesCommandeAchat() as $ligne) {
-            $this->stockManager->ajusterStock(
-                $ligne->getProduit(),
-                $ligne->getQuantite(),
-                'achat'
-            );
+            $produit = $ligne->getProduit();
+            $quantite = $ligne->getQuantite();
+
+            $this->stockManager->ajusterStock($produit, $quantite, 'achat');
+
+            // 🔴 Historique à la validation
+            $historique = new StockHistorique();
+            $historique->setProduit($produit);
+            $historique->setQuantite($quantite);
+            $historique->setDate(new \DateTimeImmutable());
+            $historique->setType('achat');
+            $historique->setCommentaire('Commande achat #' . $commande->getId());
+            $this->entityManager->persist($historique);
         }
 
         $this->entityManager->flush();
@@ -226,7 +274,6 @@ class CommandeAchatCrudController extends AbstractCrudController
         $this->addFlash('success', 'Commande validée et stock mis à jour.');
 
         $url = $this->adminUrlGenerator
-            ->setDashboard(DashboardController::class)
             ->setController(self::class)
             ->setAction('detail')
             ->setEntityId($commande->getId())
@@ -238,10 +285,8 @@ class CommandeAchatCrudController extends AbstractCrudController
     private function redirectToReferrer(AdminContext $context): RedirectResponse
     {
         $referrer = $context->getReferrer();
-
         if (!$referrer) {
             $referrer = $this->adminUrlGenerator
-                ->setDashboard(DashboardController::class)
                 ->setController(self::class)
                 ->setAction('index')
                 ->generateUrl();

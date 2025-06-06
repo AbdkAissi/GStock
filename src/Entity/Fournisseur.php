@@ -24,11 +24,6 @@ class Fournisseur
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $adresse = null;
 
-    #[ORM\Column]
-    private ?float $solde = null;
-
-    #[ORM\Column(length: 255)]
-    private ?string $credit = null;
 
     /**
      * @var Collection<int, Paiement>
@@ -120,28 +115,6 @@ class Fournisseur
         return $this;
     }
 
-    public function getSolde(): ?float
-    {
-        return $this->solde;
-    }
-
-    public function setSolde(float $solde): static
-    {
-        $this->solde = $solde;
-        return $this;
-    }
-
-    public function getCredit(): ?string
-    {
-        return $this->credit;
-    }
-
-    public function setCredit(string $credit): static
-    {
-        $this->credit = $credit;
-        return $this;
-    }
-
     /**
      * @return Collection<int, CommandeAchat>
      */
@@ -167,6 +140,7 @@ class Fournisseur
                 $commandeAchat->setFournisseur(null);
             }
         }
+
 
         return $this;
     }

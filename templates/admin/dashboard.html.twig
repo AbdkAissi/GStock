@@ -1,17 +1,156 @@
 {% extends '@EasyAdmin/layout.html.twig' %}
 
 {% block content %}
-    <h1>Tableau de Bord</h1>
-    
-    <div class="row">
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h3>{{ stats.produits }}</h3>
-                    <p>Produits en stock</p>
-                </div>
-            </div>
-        </div>
-        <!-- Répétez pour les autres statistiques -->
-    </div>
+	<div class="container my-4">
+		<div class="d-flex justify-content-between align-items-center mb-4">
+			<h1 class="text-center">📊 Tableau de bord</h1>
+
+			<div class="d-flex align-items-center gap-3">
+				<form method="get" action="{{ path('admin_dashboard') }}">
+					<select name="annee" class="form-select" onchange="this.form.submit()">
+						{% for annee in anneesDisponibles %}
+							<option value="{{ annee }}" {% if annee == anneeActive %} selected {% endif %}>{{ annee }}</option>
+						{% endfor %}
+					</select>
+				</form>
+				<button id="toggleDarkMode" class="btn btn-outline-secondary">🌙</button>
+			</div>
+		</div>
+
+		<div class="row g-4">
+			<div class="col-md-3">
+				<div class="card text-white bg-primary shadow rounded">
+					<div class="card-body">
+						<h3 class="card-title">{{ stats.produits }}</h3>
+						<p class="card-text">Produits en stock</p>
+					</div>
+				</div>
+			</div>
+			<div class="col-md-3">
+				<div class="card text-white bg-success shadow rounded">
+					<div class="card-body">
+						<h3 class="card-title">{{ stats.commandesVente }}</h3>
+						<p class="card-text">Commandes de vente</p>
+					</div>
+				</div>
+			</div>
+			<div class="col-md-3">
+				<div class="card text-white bg-warning shadow rounded">
+					<div class="card-body">
+						<h3 class="card-title">{{ stats.commandesAchat }}</h3>
+						<p class="card-text">Commandes d'achat</p>
+					</div>
+				</div>
+			</div>
+			<div class="col-md-3">
+				<div class="card text-white bg-danger shadow rounded">
+					<div class="card-body">
+						<h3 class="card-title">{{ stats.clients }}</h3>
+						<p class="card-text">Clients</p>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		{# Graphique circulaire des paiements #}
+		<div class="row mt-5">
+			<div class="col-md-6 offset-md-3">
+				<div class="card shadow">
+					<div class="card-body">
+						<h5 class="card-title text-center mb-3">💰 Répartition des paiements</h5>
+						<canvas id="chartPaiements"></canvas>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		{# Stock faible #}
+		{% if produitsFaibles is not empty %}
+			<div class="alert alert-warning mt-5 shadow">
+				<h4 class="mb-3">⚠️ Produits en stock faible</h4>
+				<table class="table table-bordered table-striped table-sm">
+					<thead>
+						<tr>
+							<th>Produit</th>
+							<th>Stock</th>
+							<th>Seuil minimum</th>
+						</tr>
+					</thead>
+					<tbody>
+						{% for produit in produitsFaibles %}
+							<tr>
+								<td>{{ produit.nom }}</td>
+								<td>{{ produit.stock }}</td>
+								<td>{{ produit.stockMinimum }}</td>
+							</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+		{% endif %}
+	</div>
+{% endblock %}
+
+{% block javascripts %}
+	{{ parent() }}
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+	<script>
+		const paiementsParStatut = {{ paiementsParStatut|json_encode|raw }};
+
+new Chart(document.getElementById('chartPaiements'), {
+type: 'doughnut',
+data: {
+labels: Object.keys(paiementsParStatut),
+datasets: [
+{
+data: Object.values(paiementsParStatut),
+backgroundColor: ['#28a745', '#ffc107', '#dc3545']
+}
+]
+},
+options: {
+responsive: true,
+plugins: {
+legend: {
+position: 'bottom'
+}
+}
+}
+});
+
+// 🌙 Toggle Dark Mode
+const html = document.documentElement;
+const toggleBtn = document.getElementById('toggleDarkMode');
+
+toggleBtn.addEventListener('click', () => {
+html.classList.toggle('dark-mode');
+localStorage.setItem('dark-mode', html.classList.contains('dark-mode') ? '1' : '0');
+});
+
+if (localStorage.getItem('dark-mode') === '1') {
+html.classList.add('dark-mode');
+}
+	</script>
+
+	<style>
+		.dark-mode {
+			background-color: #121212 !important;
+			color: #f8f9fa !important;
+		}
+		.dark-mode .card {
+			background-color: #1e1e1e !important;
+			color: #f8f9fa !important;
+		}
+		.dark-mode .form-select,
+		.dark-mode .btn {
+			background-color: #343a40 !important;
+			color: #fff !important;
+		}
+		.dark-mode a,
+		.dark-mode h1,
+		.dark-mode h3,
+		.dark-mode p {
+			color: #f8f9fa !important;
+		}
+	</style>
 {% endblock %}

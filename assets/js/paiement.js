@@ -17,7 +17,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const commandeVenteRow = document.querySelector('[data-role="commande-vente-row"]');
     const commandeAchatRow = document.querySelector('[data-role="commande-achat-row"]');
 
-    // Crée l'affichage du reste à payer
+    const etatPaiementSelect = document.querySelector('select[name$="[etatPaiement]"]');
+
     function createResteAPayerElement() {
         const resteAPayerDiv = document.createElement('div');
         resteAPayerDiv.id = 'reste-a-payer';
@@ -32,7 +33,16 @@ document.addEventListener('DOMContentLoaded', function () {
         return resteAPayerDiv;
     }
 
+    function createEtatPaiementElement() {
+        const etatDiv = document.createElement('div');
+        etatDiv.id = 'etat-paiement';
+        etatDiv.className = 'mt-2';
+        resteAPayerDiv.parentNode.insertBefore(etatDiv, resteAPayerDiv.nextSibling);
+        return etatDiv;
+    }
+
     let resteAPayerDiv = document.querySelector('#reste-a-payer') || createResteAPayerElement();
+    let etatPaiementDiv = document.querySelector('#etat-paiement') || createEtatPaiementElement();
 
     async function updateCommandesSelect(type, destinataireId) {
         const select = (type === 'client') ? commandeVenteSelect : commandeAchatSelect;
@@ -58,6 +68,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 const option = document.createElement('option');
                 option.value = cmd.id;
                 option.textContent = cmd.label;
+                if (cmd.total) {
+                    option.dataset.total = cmd.total;
+                }
                 select.appendChild(option);
             });
 
@@ -118,16 +131,20 @@ document.addEventListener('DOMContentLoaded', function () {
     async function updateResteAPayer() {
         try {
             resteAPayerDiv.style.display = 'none';
+            etatPaiementDiv.innerHTML = '';
 
             let commandeId = null;
             let type = null;
+            let selectedOption = null;
 
             if (commandeVenteSelect?.value) {
                 commandeId = commandeVenteSelect.value;
                 type = 'vente';
+                selectedOption = commandeVenteSelect.selectedOptions[0];
             } else if (commandeAchatSelect?.value) {
                 commandeId = commandeAchatSelect.value;
                 type = 'achat';
+                selectedOption = commandeAchatSelect.selectedOptions[0];
             }
 
             if (!commandeId) return;
@@ -145,36 +162,57 @@ document.addEventListener('DOMContentLoaded', function () {
             const data = await response.json();
 
             if (data.resteAPayer != null) {
+                const reste = parseFloat(data.resteAPayer);
+                const total = parseFloat(data.total ?? selectedOption?.dataset?.total ?? 0);
+
                 resteAPayerDiv.textContent = `Reste à payer : ${new Intl.NumberFormat('fr-FR', {
                     style: 'currency',
                     currency: 'MAD'
-                }).format(data.resteAPayer)}`;
+                }).format(reste)}`;
 
                 const montantInput = document.querySelector('input[name="montant"]');
-                if (montantInput) montantInput.value = data.resteAPayer.toFixed(2);
+                if (montantInput) montantInput.value = reste.toFixed(2);
+
+                // État du paiement
+                let etat = 'inconnu';
+                let badge = 'secondary';
+                if (reste === 0) {
+                    etat = 'payé';
+                    badge = 'success';
+                } else if (reste > 0 && total && reste < total) {
+                    etat = 'partiel';
+                    badge = 'warning';
+                } else {
+                    etat = 'impayé';
+                    badge = 'danger';
+                }
+
+                etatPaiementDiv.innerHTML = `<span class="badge bg-${badge}">État du paiement : ${etat}</span>`;
+
+                // Remplissage auto du champ etatPaiement si présent
+                if (etatPaiementSelect) {
+                    etatPaiementSelect.value = etat;
+                }
             } else {
                 resteAPayerDiv.textContent = 'Information non disponible';
+                etatPaiementDiv.innerHTML = '';
             }
 
         } catch (error) {
             console.error('Erreur:', error);
             resteAPayerDiv.textContent = 'Erreur lors du chargement: ' + error.message;
             resteAPayerDiv.style.display = 'block';
+            etatPaiementDiv.innerHTML = '';
         }
     }
 
     // Événements
-
     typeSelect?.addEventListener('change', updateDisplay);
     clientSelect?.addEventListener('change', () => {
-        if (clientSelect.value) {
-            updateCommandesSelect('client', clientSelect.value);
-        }
+        if (clientSelect.value) updateCommandesSelect('client', clientSelect.value);
     });
     fournisseurSelect?.addEventListener('change', () => {
-        if (fournisseurSelect.value) {
-            updateCommandesSelect('fournisseur', fournisseurSelect.value);
-        }
+        if (fournisseurSelect.value) updateCommandesSelect('fournisseur', fournisseurSelect.value);
     });
 
     commandeVenteSelect?.addEventListener('change', updateResteAPayer);

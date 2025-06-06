@@ -26,6 +26,19 @@ class CommandeVente
     #[ORM\Column]
     private ?\DateTimeImmutable $dateCommande = null;
 
+    #[ORM\Column(type: 'string', nullable: true)]
+    private ?string $moyenPaiement = null;
+
+    public function getMoyenPaiement(): ?string
+    {
+        return $this->moyenPaiement;
+    }
+
+    public function setMoyenPaiement(?string $moyenPaiement): self
+    {
+        $this->moyenPaiement = $moyenPaiement;
+        return $this;
+    }
     #[ORM\Column(type: 'string', length: 20)]
     private string $etat = self::ETAT_EN_ATTENTE;
 
@@ -49,10 +62,14 @@ class CommandeVente
     {
         return $this->id;
     }
+    public function getMoyensPaiementAffiche(): string
+    {
+        return implode(', ', array_map(fn($p) => $p->getMoyenPaiement(), $this->paiements->toArray()));
+    }
 
     public function setLignesCommandeVente(Collection $lignes): static
     {
-        // Marquer les lignes qui ne sont plus présentes pour suppression
+        // Supprime les lignes qui ne sont plus dans la collection
         foreach ($this->lignesCommandeVente->toArray() as $existingLigne) {
             $found = false;
             foreach ($lignes as $newLigne) {
@@ -61,15 +78,13 @@ class CommandeVente
                     break;
                 }
             }
-
             if (!$found) {
                 $this->removeLigneCommandeVente($existingLigne);
             }
         }
 
-        // Ajouter/Mettre à jour les nouvelles lignes
+        // Ajoute ou met à jour les lignes
         foreach ($lignes as $ligne) {
-            // Si c'est une nouvelle ligne ou une ligne non associée à cette commande
             if (!$ligne->getCommandeVente() || $ligne->getCommandeVente()->getId() !== $this->getId()) {
                 $this->addLigneCommandeVente($ligne);
             }
@@ -77,6 +92,7 @@ class CommandeVente
 
         return $this;
     }
+
     public function getLignesCommandeAffichage(): string
     {
         if ($this->getLignesCommandeVente()->isEmpty()) {
@@ -101,7 +117,7 @@ HTML;
             $produit = htmlspecialchars($ligne->getProduit()->getNom());
             $quantite = $ligne->getQuantite();
             $prixUnitaire = number_format($ligne->getPrixUnitaire(), 2, ',', ' ');
-            $total = number_format($ligne->getQuantite() * $ligne->getPrixUnitaire(), 2, ',', ' ');
+            $total = number_format($quantite * $ligne->getPrixUnitaire(), 2, ',', ' ');
             $html .= "<li><strong>{$produit}</strong> × {$quantite} à {$prixUnitaire} MAD (Total : {$total} MAD)</li>";
         }
 
@@ -136,6 +152,13 @@ HTML;
     {
         return $this->client;
     }
+
+    public function setClient(?Client $client): static
+    {
+        $this->client = $client;
+        return $this;
+    }
+
     public function isValidee(): bool
     {
         return $this->etat === self::ETAT_RECEPTIONNEE;
@@ -158,13 +181,6 @@ HTML;
             'Réceptionnée' => self::ETAT_RECEPTIONNEE,
             'Annulée' => self::ETAT_ANNULEE,
         ];
-    }
-
-
-    public function setClient(?Client $client): static
-    {
-        $this->client = $client;
-        return $this;
     }
 
     public function getLignesCommandeVente(): Collection
@@ -191,42 +207,50 @@ HTML;
         return $this;
     }
 
+    public function getMontantTotal(): float
+    {
+        $total = 0.0;
+        foreach ($this->lignesCommandeVente as $ligne) {
+            $prixUnitaire = $ligne->getPrixUnitaire() ?? 0;
+            $quantite = $ligne->getQuantite() ?? 0;
+            $total += $prixUnitaire * $quantite;
+        }
+        return $total;
+    }
     public function getTotalCommande(): float
     {
         $total = 0;
-        foreach ($this->lignesCommandeVente as $ligne) {
-            $prixUnitaire = $ligne->getPrixUnitaire(); // ne doit jamais être null, ou 0 par défaut
-            $quantite = $ligne->getQuantite(); // ne doit jamais être null, ou 0 par défaut
-            if ($prixUnitaire > 0 && $quantite > 0) {
-                $total += $prixUnitaire * $quantite;
-            }
+        foreach ($this->getLignesCommandeVente() as $ligne) {
+            $total += $ligne->getQuantite() * $ligne->getPrixUnitaire();
         }
         return $total;
-    }
-    public function getMontantTotalPaye(): float
-    {
-        $total = 0;
-        foreach ($this->getPaiements() as $paiement) {
-            $total += $paiement->getMontant();
-        }
-        return $total;
-    }
-
-    public function getResteAPayer(): float
-    {
-        return $this->getTotalCommande() - $this->getMontantTotalPaye();
     }
 
     public function getPaiements(): Collection
     {
         return $this->paiements;
     }
+
+    public function getMontantTotalPaye(): float
+    {
+        $total = 0.0;
+        foreach ($this->paiements as $paiement) {
+            $total += $paiement->getMontant() ?? 0;
+        }
+        return $total;
+    }
+
+    public function getResteAPayer(): float
+    {
+        return $this->getMontantTotal() - $this->getMontantTotalPaye();
+    }
+
     public function getEtatPaiement(): string
     {
-        $total = $this->getTotalCommande() ?? 0;
-        $paye = $this->getMontantTotalPaye() ?? 0;
+        $total = $this->getMontantTotal();
+        $paye = $this->getMontantTotalPaye();
 
-        if ($paye >= $total) {
+        if ($paye >= $total && $total > 0) {
             return 'payée';
         } elseif ($paye > 0) {
             return 'partielle';
@@ -237,6 +261,6 @@ HTML;
 
     public function __toString(): string
     {
-        return 'Vente #' . $this->getId(); // ou n'importe quel champ lisible
+        return 'Vente #' . ($this->getId() ?? 'n/a');
     }
 }

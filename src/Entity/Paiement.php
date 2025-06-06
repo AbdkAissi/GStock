@@ -62,7 +62,22 @@ class Paiement
         $this->date = $date;
         return $this;
     }
+    #[ORM\Column(type: 'string', length: 20)]
+    private ?string $etatPaiement = null;
 
+
+    // Getters et setters
+    public function getEtatPaiement(): ?string
+    {
+        return $this->etatPaiement;
+    }
+
+    public function setEtatPaiement(string $etatPaiement): self
+    {
+        $this->etatPaiement = $etatPaiement;
+
+        return $this;
+    }
     public function getMontant(): ?float
     {
         return $this->montant;

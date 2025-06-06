@@ -144,7 +144,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-
     /**
      * @see UserInterface
      */
@@ -165,7 +164,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
         return $this;
     }
-    // Ajoutez dans src/Entity/User.php
+
     public function __toString(): string
     {
         return $this->email;

@@ -40,4 +40,11 @@ class ProduitRepository extends ServiceEntityRepository
     //            ->getOneOrNullResult()
     //        ;
     //    }
+    public function findProduitsStockFaible(): array
+    {
+        return $this->createQueryBuilder('p')
+            ->where('p.quantiteStock <= p.seuilAlerte')
+            ->getQuery()
+            ->getResult();
+    }
 }

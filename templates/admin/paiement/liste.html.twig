@@ -1,0 +1,36 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Liste des Paiements
+{% endblock %}
+
+{% block body %}
+	<h1>Liste des Paiements</h1>
+
+	<table class="table table-striped">
+		<thead>
+			<tr>
+				<th>Nom du Bénéficiaire</th>
+				<th>Commande associée</th>
+				<th>Montant</th>
+				<th>Date</th>
+				<th>État</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for paiement in paiements %}
+				<tr>
+					<td>{{ paiement.nomBeneficiaire }}</td>
+					<td>{{ paiement.commandeAssociee }}</td>
+					<td>{{ paiement.montant | number_format(2, '.', ',') }}
+						MAD</td>
+					<td>{{ paiement.date | date('d/m/Y') }}</td>
+					<td>{{ paiement.etatPaiement }}</td>
+				</tr>
+			{% else %}
+				<tr>
+					<td colspan="5">Aucun paiement trouvé.</td>
+				</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+{% endblock %}

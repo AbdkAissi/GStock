@@ -2,7 +2,7 @@
 @use "~bootstrap/scss/bootstrap" as *;
 
 // ✅ Import de Animate.css (version CSS classique)
-@import "~animate.css/animate.css";
+@use "~animate.css/animate.css";
 
 // ✅ Si tu as un fichier personnalisé "custom.scss"
 //@import "custom";

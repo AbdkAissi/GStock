@@ -44,4 +44,14 @@ class CommandeVenteRepository extends ServiceEntityRepository
 
         return $ventesParMois;
     }
+    // Dans CommandeVenteRepository
+    public function getVentesParMois(): array
+    {
+        return $this->createQueryBuilder('c')
+            ->select('SUBSTRING(c.dateCommande, 1, 7) AS mois, COUNT(c.id) AS total')
+            ->groupBy('mois')
+            ->orderBy('mois', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

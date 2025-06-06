@@ -1,17 +1,20 @@
-// 1. Import Bootstrap (si utilisé)
-@use "~bootstrap/scss/bootstrap";
-
+// 1. Importation de Bootstrap (si utilisé)
+@use "bootstrap/scss/bootstrap";
 
 // 2. Variables personnalisées
 $admin-bg-color: #f8f9fa;
 $admin-header-color: #ffffff;
 $admin-header-text-color: #ffffff;
+$primary-color: #198754;
+$secondary-color: #6c757d;
+$hover-color: #157347;
 
 // 3. Style global pour l'administration
 body {
     background-color: $admin-bg-color;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     font-size: 14px;
+    color: #495057;
 }
 
 // 4. Barre de navigation
@@ -41,41 +44,210 @@ body {
     td, th {
         padding: 0.75rem;
     }
-}
 
-// 6. Boutons personnalisés
-.btn-admin {
-    background-color: #198754;
-    color: white;
+    .sortable-column {
+        cursor: pointer;
+        &:hover {
+            background-color: #f1f1f1;
+        }
+    }
 
-    &:hover {
-        background-color: #157347;
+    .sortable-column.asc::after {
+        content: " ↑";
+    }
+
+    .sortable-column.desc::after {
+        content: " ↓";
     }
 }
 
-// 7. Flash messages
+// 6. Pagination
+.pagination {
+    display: flex;
+    justify-content: center;
+
+    .page-item {
+        margin: 0 5px;
+
+        &.active .page-link {
+            background-color: $primary-color;
+            border-color: $primary-color;
+        }
+
+        &:hover .page-link {
+            background-color: $primary-color;
+            border-color: $primary-color;
+        }
+    }
+
+    .page-link {
+        color: $primary-color;
+        border: 1px solid $primary-color;
+    }
+}
+
+// 7. Filtres de recherche
+.filter-container {
+    display: flex;
+    justify-content: flex-start;
+    margin: 20px 0;
+
+    .filter-input {
+        margin-right: 10px;
+        padding: 5px;
+        border-radius: 4px;
+        border: 1px solid #ced4da;
+    }
+
+    .filter-button {
+        background-color: $primary-color;
+        color: white;
+        border: none;
+        padding: 5px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+
+        &:hover {
+            background-color: $hover-color;
+        }
+    }
+}
+
+// 8. Notifications (Flash messages)
 .flash-message {
     margin: 10px 0;
     padding: 12px;
     border-radius: 6px;
 
-    &.alert-success { background-color: #d4edda; color: #155724; }
-    &.alert-error { background-color: #f8d7da; color: #721c24; }
-    &.alert-info { background-color: #d1ecf1; color: #0c5460; }
+    &.alert-success {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    &.alert-error {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    &.alert-info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+    }
+
+    &.toast {
+        background-color: #f8d7da;
+        color: #721c24;
+        border-radius: 4px;
+        padding: 15px;
+        margin: 10px 0;
+        position: relative;
+        z-index: 9999;
+        animation: slideIn 0.5s ease-in-out;
+
+        &.toast-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        &.toast-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        @keyframes slideIn {
+            0% {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    }
 }
 
-.sortable-column:hover {
-    background-color: #f1f1f1;
+// 9. Mode sombre
+body.dark-mode {
+    background-color: #343a40;
+    color: #ffffff;
 }
-.sortable-column.asc::after {
-    content: " ↑";
+
+.navbar.dark-mode {
+    background-color: #212529;
 }
-.sortable-column.desc::after {
-    content: " ↓";
+
+.btn-admin.dark-mode {
+    background-color: #28a745;
+    color: white;
 }
+
+.flash-message.dark-mode {
+    background-color: #495057;
+    color: #ffffff;
+}
+
+// 10. Tableau de bord - Cartes
+.card-dashboard {
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin: 20px 0;
+    display: flex;
+    justify-content: space-between;
+
+    .card-header {
+        font-weight: bold;
+        font-size: 18px;
+    }
+
+    .card-body {
+        font-size: 14px;
+        color: #495057;
+    }
+
+    .card-footer {
+        font-size: 12px;
+        color: #6c757d;
+        text-align: right;
+    }
+}
+
+// 11. Indicateur de progression (Loading bar)
+.loading-bar {
+    width: 0;
+    height: 5px;
+    background-color: $primary-color;
+    animation: loading 2s infinite;
+}
+
+@keyframes loading {
+    0% {
+        width: 0;
+    }
+    50% {
+        width: 50%;
+    }
+    100% {
+        width: 100%;
+    }
+}
+
+// 12. Boutons personnalisés
+.btn-admin {
+    background-color: $primary-color;
+    color: white;
+
+    &:hover {
+        background-color: $hover-color;
+    }
+}
+
+// 13. Résumé des paiements
 .paiement-resume {
     box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
 }
+
 .table-active {
     --bs-table-accent-bg: rgba(13, 110, 253, 0.1) !important;
 }

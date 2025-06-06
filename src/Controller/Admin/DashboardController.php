@@ -3,124 +3,146 @@
 namespace App\Controller\Admin;
 
 use App\Entity\Client;
-use App\Entity\CommandeAchat;
-use App\Entity\CommandeVente;
 use App\Entity\Fournisseur;
 use App\Entity\Produit;
+use App\Entity\CommandeAchat;
+use App\Entity\CommandeVente;
 use App\Entity\Paiement;
+use App\Entity\User;
+
+use App\Repository\ProduitRepository;
+use App\Repository\ClientRepository;
+use App\Repository\FournisseurRepository;
+use App\Repository\CommandeAchatRepository;
+use App\Repository\CommandeVenteRepository;
+use App\Repository\PaiementRepository;
+
+use App\Controller\Admin\ClientCrudController;
+use App\Controller\Admin\FournisseurCrudController;
+use App\Controller\Admin\ProduitCrudController;
+use App\Controller\Admin\CommandeAchatCrudController;
+use App\Controller\Admin\CommandeVenteCrudController;
+use App\Controller\Admin\UserCrudController;
+
 use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
+use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
+
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use App\Repository\ProduitRepository;
-use App\Repository\ClientRepository;
-use App\Repository\CommandeVenteRepository;
-use App\Repository\CommandeAchatRepository;
-use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
-use App\Controller\Admin\UserCrudController;
-use App\Entity\User;
 
 class DashboardController extends AbstractDashboardController
 {
-    // Injection des repositories nécessaires pour accéder aux données depuis la base
     public function __construct(
         private ProduitRepository $produitRepository,
         private ClientRepository $clientRepository,
-        private CommandeVenteRepository $commandeVenteRepository,
+        private FournisseurRepository $fournisseurRepository,
         private CommandeAchatRepository $commandeAchatRepository,
+        private CommandeVenteRepository $commandeVenteRepository,
+        private PaiementRepository $paiementRepository,
         private AdminUrlGenerator $adminUrlGenerator,
     ) {}
 
-
-    // Route principale de l'admin : /admin
     #[Route('/admin', name: 'app_dashboard')]
     public function index(): Response
     {
-        // Récupération du nombre total de produits, clients, commandes de vente et commandes d'achat
-        $produitsCount = $this->produitRepository->count([]);
-        $clientsCount = $this->clientRepository->count([]);
-        $commandesvCount = $this->commandeVenteRepository->count([]);
-        $commandesaCount = $this->commandeAchatRepository->count([]);
-        // Génère les URLs vers les pages CRUD correspondantes
-        $urls = [
-            'produits' => $this->adminUrlGenerator->setController(\App\Controller\Admin\ProduitCrudController::class)->generateUrl(),
-            'clients' => $this->adminUrlGenerator->setController(\App\Controller\Admin\ClientCrudController::class)->generateUrl(),
-            'commandes_vente' => $this->adminUrlGenerator->setController(\App\Controller\Admin\CommandeVenteCrudController::class)->generateUrl(),
-            'commandes_achat' => $this->adminUrlGenerator->setController(\App\Controller\Admin\CommandeAchatCrudController::class)->generateUrl(),
-        ];
-        $ventesParMois = $this->commandeVenteRepository->getNombreVentesParMois();
-        $achatParMois = $this->commandeAchatRepository->getNombreAchatParMois();
+        $anneeActuelle = (int) date('Y');
 
-        // Affichage du tableau de bord avec les statistiques dans un template Twig
         return $this->render('admin/empty_dashboard.html.twig', [
-            'totalProduits' => $produitsCount,
-            'totalClients' => $clientsCount,
-            'totalCommandesVente' => $commandesvCount,
-            'totalCommandesAchat' => $commandesaCount,
-            'urls' => $urls,
-            'ventesParMois' => $ventesParMois,
-            'achatsParMois' => $achatParMois,
+            // Données globales
+            'totalProduits' => $this->produitRepository->count([]),
+            'totalClients' => $this->clientRepository->count([]),
+            'totalFournisseurs' => $this->fournisseurRepository->count([]),
+            'totalCommandesVente' => $this->commandeVenteRepository->count([]),
+            'totalCommandesAchat' => $this->commandeAchatRepository->count([]),
 
+            // Graphiques
+            'ventesParMois' => $this->commandeVenteRepository->getVentesParMois(),
+            'achatsParMois' => $this->commandeAchatRepository->getAchatsParMois(),
+
+            // Paiements
+            'paiementsParEtat' => $this->paiementRepository->getMontantsParEtatParAnnee($anneeActuelle),
+            'anneeActuelle' => $anneeActuelle,
+            'anneesPaiements' => $this->paiementRepository->getAnneesPaiements(),
+
+            // Produits critiques
+            'produitsStockFaible' => $this->produitRepository->createQueryBuilder('p')
+                ->where('p.quantiteStock <= p.seuilAlerte')
+                ->getQuery()
+                ->getResult(),
+
+
+            // Dernières ventes
+            'dernieresCommandesVente' => $this->commandeVenteRepository->createQueryBuilder('c')
+                ->orderBy('c.dateCommande', 'DESC')
+                ->setMaxResults(5)
+                ->getQuery()
+                ->getResult(),
+
+            // Liens vers les entités
+            'urls' => [
+                'produits' => $this->adminUrlGenerator->setController(ProduitCrudController::class)->generateUrl(),
+                'clients' => $this->adminUrlGenerator->setController(ClientCrudController::class)->generateUrl(),
+                'fournisseurs' => $this->adminUrlGenerator->setController(FournisseurCrudController::class)->generateUrl(),
+                'commandes_vente' => $this->adminUrlGenerator->setController(CommandeVenteCrudController::class)->generateUrl(),
+                'commandes_achat' => $this->adminUrlGenerator->setController(CommandeAchatCrudController::class)->generateUrl(),
+            ],
         ]);
     }
 
-    // Configuration générale du tableau de bord (titre, favicon)
     public function configureDashboard(): Dashboard
     {
         return Dashboard::new()
-            ->setTitle('<i class="fas fa-warehouse"></i> Gestion de Stock') // Titre affiché dans l’admin
-            ->setFaviconPath('favicon.ico'); // Icône de l’onglet navigateur
+            ->setTitle('<i class="fas fa-warehouse"></i> Gestion de Stock')
+            ->setFaviconPath('favicon.ico');
     }
 
-    // Configuration du menu de navigation dans l'interface EasyAdmin
     public function configureMenuItems(): iterable
     {
-        // Menu principal
+        yield MenuItem::section('Données');
 
-        // Section Clients & Fournisseurs
-        yield MenuItem::subMenu('Contacts', 'fas fa-bars')->setSubItems([
+        yield MenuItem::subMenu('Contacts', 'fas fa-address-book')->setSubItems([
             MenuItem::linkToCrud('Clients', 'fas fa-user', Client::class),
             MenuItem::linkToCrud('Fournisseurs', 'fas fa-truck', Fournisseur::class),
         ]);
 
-        // Section Produits & Stocks
-        yield MenuItem::subMenu('Gestion Produits', 'fas fa-bars')->setSubItems([
+        yield MenuItem::subMenu('Produits', 'fas fa-boxes')->setSubItems([
             MenuItem::linkToCrud('Produits', 'fas fa-box', Produit::class),
-            //MenuItem::linkToCrud('Stocks', 'fas fa-warehouse', Stock::class), // si tu as une entité Stock
         ]);
-        // Section Commandes
-        yield MenuItem::subMenu('Commandes', 'fas fa-bars')->setSubItems([
-            MenuItem::linkToCrud('Commandes d\'Achat', 'fas fa-shopping-cart', CommandeAchat::class),
-            MenuItem::linkToCrud('Commandes de Vente', 'fas fa-cash-register', CommandeVente::class),
+
+        yield MenuItem::section('Commandes & Paiements');
+
+        yield MenuItem::subMenu('Commandes', 'fas fa-shopping-basket')->setSubItems([
+            MenuItem::linkToCrud('Achats', 'fas fa-shopping-cart', CommandeAchat::class),
+            MenuItem::linkToCrud('Ventes', 'fas fa-cash-register', CommandeVente::class),
         ]);
-        // Section Paiements
-        yield MenuItem::subMenu('Paiements', 'fas fa-bars')->setSubItems([
+
+        yield MenuItem::subMenu('Paiements', 'fas fa-credit-card')->setSubItems([
             MenuItem::linkToCrud('Paiements', 'fas fa-credit-card', Paiement::class),
         ]);
-        // Section Statistiques / Rapports
-        yield MenuItem::subMenu('Rapports', 'fas fa-bars')->setSubItems([
-            MenuItem::linkToRoute('Dashboard Statistiques', 'fas fa-chart-line', 'app_statistiques'), // route personnalisée
+
+        yield MenuItem::subMenu('Rapports', 'fas fa-chart-pie')->setSubItems([
+            MenuItem::linkToRoute('Statistiques', 'fas fa-chart-line', 'app_dashboard'),
         ]);
-        // Section Utilisateurs (si applicable)
-        yield MenuItem::subMenu('Administration', 'fas fa-bars')->setSubItems([
-            MenuItem::linkToCrud('Users', 'fa fa-users', User::class)
-                ->setController(UserCrudController::class),
+
+        yield MenuItem::section('Système');
+
+        yield MenuItem::subMenu('Administration', 'fas fa-user-cog')->setSubItems([
+            MenuItem::linkToCrud('Utilisateurs', 'fas fa-users', User::class)->setController(UserCrudController::class),
             MenuItem::linkToRoute('Paramètres', 'fas fa-cogs', 'app_settings'),
         ]);
-        // Lien vers site public
+
         yield MenuItem::linkToUrl('Voir le site', 'fas fa-home', '/')->setLinkTarget('_blank');
     }
 
-
-    // Ajout de fichiers JS et CSS personnalisés pour l'administration
     public function configureAssets(): Assets
     {
         return parent::configureAssets()
-            ->addWebpackEncoreEntry('admin') // Entrée Webpack principale pour l’admin
-            ->addJsFile('build/auto-prix-vente.js') // Utilise le chemin correct pour Webpack
-            ->addJsFile('build/auto-prix-achat.js') // Utilise le chemin correct pour Webpack
-            ->addCssFile('build/admin.css'); // CSS via Webpack
+            ->addWebpackEncoreEntry('admin')
+            ->addJsFile('build/auto-prix-vente.js')
+            ->addJsFile('build/auto-prix-achat.js')
+            ->addCssFile('build/admin.css');
     }
 }

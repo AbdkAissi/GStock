@@ -1,0 +1,114 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Interface de Scan
+{% endblock %}
+
+{% block body %}
+	<h1>Scanner un produit</h1>
+
+	<form id="stock-form">
+		<label for="barcode">Code-barres :</label>
+		<input type="text" id="barcode" placeholder="Scanner ici..." autofocus>
+		<div id="product-info"></div>
+	</form>
+
+	<!-- QuaggaJS -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+
+	<script>
+		document.getElementById('barcode').addEventListener('change', function () {
+const barcode = this.value;
+
+fetch('/stock/scan', {
+method: 'POST',
+headers: {
+'Content-Type': 'application/json'
+},
+body: JSON.stringify(
+{barcode: barcode}
+)
+}).then(response => response.json()).then(data => {
+const infoDiv = document.getElementById('product-info');
+if (data.status === 'success') {
+infoDiv.innerHTML = `
+                    <p><strong>Nom:</strong> ${
+data.produit.name
+}</p>
+                    <p><strong>Quantité:</strong> ${
+data.produit.quantite
+}</p>
+                    <p><strong>Prix:</strong> ${
+data.produit.prix
+} €</p>
+                    <button onclick="ajusterStock('${barcode}', 'add')">+ Ajouter</button>
+                    <button onclick="ajusterStock('${barcode}', 'subtract')">- Retirer</button>
+                    <button onclick="relancerScanner()">🔄 Relancer scanner</button>
+                `;
+} else {
+infoDiv.innerHTML = '<p style="color:red;">' + data.message + '</p>';
+}
+}).catch(error => {
+console.error('Erreur réseau:', error);
+});
+});
+
+function ajusterStock(barcode, action) {
+const quantite = prompt("Quantité à " + (
+action === 'add' ? 'ajouter' : 'retirer'
+) + " :");
+if (! quantite) 
+return;
+
+
+fetch (`/stock/adjust/${action}`, {
+method: 'POST',
+headers: {
+'Content-Type': 'application/json'
+},
+body: JSON.stringify(
+{barcode: barcode, quantite: quantite}
+)
+}).then(response => response.json()).then(data => {
+if (data.status === 'success') {
+alert('Stock mis à jour : ' + data.new_quantity);
+document.getElementById('barcode').value = '';
+document.getElementById('product-info').innerHTML = '';
+document.getElementById('barcode').focus();
+} else {
+alert(data.message);
+}
+}).catch(error => {
+console.error('Erreur réseau:', error);
+});
+}
+
+function relancerScanner() {
+Quagga.start();
+}
+
+// Initialiser le scan caméra
+Quagga.init({
+inputStream: {
+name: "Live",
+type: "LiveStream",
+target: document.querySelector('#barcode')
+},
+decoder: {
+readers: ["ean_reader", "code_128_reader"]
+}
+}, function (err) {
+if (err) {
+console.error(err);
+return;
+}
+Quagga.start();
+});
+
+Quagga.onDetected(function (result) {
+const code = result.codeResult.code;
+document.getElementById('barcode').value = code;
+document.getElementById('barcode').dispatchEvent(new Event('change'));
+Quagga.stop();
+});
+	</script>
+{% endblock %}

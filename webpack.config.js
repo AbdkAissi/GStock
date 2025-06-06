@@ -22,9 +22,7 @@ Encore
     // Active Sass/SCSS
     .enableSassLoader()
 
-    // PostCSS (utile pour compatibilité navigateur)
-    .enablePostCssLoader()
-
+  
     // Génère un seul fichier runtime
     .enableSingleRuntimeChunk()
 

@@ -16,9 +16,11 @@ class CommandeAchatRepository extends ServiceEntityRepository
         parent::__construct($registry, CommandeAchat::class);
     }
 
-    //    /**
-    //     * @return CommandeAchat[] Returns an array of CommandeAchat objects
-    //     */
+    /**
+     * Retourne le nombre de commandes d'achat groupé par mois (YYYY-MM).
+     *
+     * @return array<int,array{mois:string,total:int}>
+     */
     public function getNombreAchatParMois(): array
     {
         $conn = $this->getEntityManager()->getConnection();
@@ -42,5 +44,15 @@ class CommandeAchatRepository extends ServiceEntityRepository
         }
 
         return $achatParMois;
+    }
+    // Dans CommandeAchatRepository
+    public function getAchatsParMois(): array
+    {
+        return $this->createQueryBuilder('c')
+            ->select('SUBSTRING(c.dateCommande, 1, 7) AS mois, COUNT(c.id) AS total')
+            ->groupBy('mois')
+            ->orderBy('mois', 'ASC')
+            ->getQuery()
+            ->getResult();
     }
 }

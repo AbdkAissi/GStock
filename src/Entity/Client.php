@@ -27,12 +27,6 @@ class Client
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $contact = null;
 
-    #[ORM\Column]
-    private ?float $solde = null;
-
-    #[ORM\Column]
-    private ?float $credit = null;
-
     #[ORM\OneToMany(mappedBy: 'client', targetEntity: Paiement::class)]
     private Collection $paiements;
 
@@ -97,28 +91,6 @@ class Client
     public function __toString()
     {
         return $this->nom;
-    }
-
-    public function getSolde(): ?float
-    {
-        return $this->solde;
-    }
-
-    public function setSolde(float $solde): static
-    {
-        $this->solde = $solde;
-        return $this;
-    }
-
-    public function getCredit(): ?float
-    {
-        return $this->credit;
-    }
-
-    public function setCredit(float $credit): static
-    {
-        $this->credit = $credit;
-        return $this;
     }
 
     /**
