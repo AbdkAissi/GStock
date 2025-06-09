@@ -85,18 +85,53 @@ class PaiementCrudController extends AbstractCrudController
         ];
 
         if ($pageName === Crud::PAGE_INDEX) {
-            // SOLUTION 1: Version sans HTML pour éviter les problèmes de rendu
             $fields[] = TextField::new('commandeAssociee', 'Commande associée')
                 ->onlyOnIndex()
-                ->setSortable(false);
-            // EasyAdmin utilisera automatiquement getCommandeAssociee() de l'entité
-            // Résultat : "Vente #53", "Achat #31", "Aucune"
+                ->renderAsHtml()
+                ->formatValue(function ($value, $entity) {
+                    if ($entity->getCommandeVente()) {
+                        $url = $this->adminUrlGenerator
+                            ->setController(CommandeVenteCrudController::class)
+                            ->setAction('detail')
+                            ->setEntityId($entity->getCommandeVente()->getId())
+                            ->generateUrl();
+                        return sprintf('<a href="%s" target="_blank" style="color:#0d6efd;">Vente #%d</a>', $url, $entity->getCommandeVente()->getId());
+                    } elseif ($entity->getCommandeAchat()) {
+                        $url = $this->adminUrlGenerator
+                            ->setController(CommandeAchatCrudController::class)
+                            ->setAction('detail')
+                            ->setEntityId($entity->getCommandeAchat()->getId())
+                            ->generateUrl();
+                        return sprintf('<a href="%s" target="_blank" style="color:#0d6efd;">Achat #%d</a>', $url, $entity->getCommandeAchat()->getId());
+                    }
+                    return 'Aucune';
+                });
 
             $fields[] = TextField::new('nomBeneficiaire', 'Nom')
                 ->onlyOnIndex()
-                ->setSortable(false);
-            // EasyAdmin utilisera automatiquement getNomBeneficiaire() de l'entité
+                ->renderAsHtml()
+                ->formatValue(function ($value, $entity) {
+                    if ($entity->getClient()) {
+                        $url = $this->adminUrlGenerator
+                            ->setController(ClientCrudController::class)
+                            ->setAction('detail')
+                            ->setEntityId($entity->getClient()->getId())
+                            ->generateUrl();
+                        return sprintf('<a href="%s" target="_blank" style="color:#0d6efd;">%s</a>', $url, $value);
+                    } elseif ($entity->getFournisseur()) {
+                        $url = $this->adminUrlGenerator
+                            ->setController(FournisseurCrudController::class)
+                            ->setAction('detail')
+                            ->setEntityId($entity->getFournisseur()->getId())
+                            ->generateUrl();
+                        return sprintf('<a href="%s" target="_blank" style="color:#0d6efd;">%s</a>', $url, $value);
+                    }
+
+                    return $value;
+                });
         }
+
+
 
         if ($pageName === Crud::PAGE_DETAIL) {
             // Version avec HTML seulement pour la page de détail
