@@ -6,6 +6,8 @@ use App\Entity\Produit;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\CommandeVente;
 use Psr\Log\LoggerInterface;
+use App\Entity\CommandeAchat;
+use App\Entity\StockHistorique;
 
 class StockManager
 {
@@ -129,5 +131,47 @@ class StockManager
         foreach ($commande->getLignesCommandeVente() as $ligne) {
             $this->ajusterStock($ligne->getProduit(), $ligne->getQuantite(), 'vente');
         }
+    }
+
+    public function ajusterCommandeAchat(CommandeAchat $commande): void
+    {
+        foreach ($commande->getLignesCommandeAchat() as $ligne) {
+            $produit = $ligne->getProduit();
+            $quantite = $ligne->getQuantite();
+
+            $this->ajusterStock($produit, $quantite, 'achat');
+
+            $historique = new StockHistorique();
+            $historique->setProduit($produit);
+            $historique->setQuantite($quantite);
+            $historique->setDate(new \DateTimeImmutable());
+            $historique->setOperationType('achat'); // ✅ le champ correct est operationType
+            $historique->setCommentaire('Commande achat #' . $commande->getId());
+
+            $this->entityManager->persist($historique);
+        }
+
+        $this->entityManager->flush();
+    }
+
+    public function restaurerCommandeAchat(CommandeAchat $commande): void
+    {
+        foreach ($commande->getLignesCommandeAchat() as $ligne) {
+            $produit = $ligne->getProduit();
+            $quantite = $ligne->getQuantite();
+
+            $this->restaurerStock($produit, $quantite, 'achat');
+
+            $historique = new StockHistorique();
+            $historique->setProduit($produit);
+            $historique->setQuantite(-$quantite); // Retrait de stock
+            $historique->setDate(new \DateTimeImmutable());
+            $historique->setOperationType('annulation'); // ✅ utilise le bon nom de champ
+            $historique->setCommentaire('Annulation commande achat #' . $commande->getId());
+
+            $this->entityManager->persist($historique);
+        }
+
+        $this->entityManager->flush();
     }
 }

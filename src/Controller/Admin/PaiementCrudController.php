@@ -14,15 +14,9 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextEditorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\UrlField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
-use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
-use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
-use App\Entity\Client;
-use App\Entity\Fournisseur;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
-
 
 class PaiementCrudController extends AbstractCrudController
 {
@@ -42,6 +36,7 @@ class PaiementCrudController extends AbstractCrudController
             ->setPageTitle(Crud::PAGE_NEW, 'Ajouter un paiement')
             ->setPageTitle(Crud::PAGE_EDIT, 'Modifier le paiement')
             ->setPageTitle(Crud::PAGE_DETAIL, fn(Paiement $paiement) => 'Détails du paiement #' . $paiement->getId())
+            ->setDefaultSort(['date' => 'DESC'])
             ->setFormThemes([
                 '@EasyAdmin/crud/form_theme.html.twig',
             ]);
@@ -51,7 +46,6 @@ class PaiementCrudController extends AbstractCrudController
     {
         $fields = [
             IdField::new('id')->hideOnForm(),
-
             DateField::new('date', 'Date')->setFormat('d/M/Y'),
 
             ChoiceField::new('typePaiement', 'Type')
@@ -90,10 +84,24 @@ class PaiementCrudController extends AbstractCrudController
                 ->setStoredAsCents(false),
         ];
 
-        // Affichage du lien vers la commande associée
-        if ($pageName === Crud::PAGE_INDEX || $pageName === Crud::PAGE_DETAIL) {
+        if ($pageName === Crud::PAGE_INDEX) {
+            // SOLUTION 1: Version sans HTML pour éviter les problèmes de rendu
             $fields[] = TextField::new('commandeAssociee', 'Commande associée')
                 ->onlyOnIndex()
+                ->setSortable(false);
+            // EasyAdmin utilisera automatiquement getCommandeAssociee() de l'entité
+            // Résultat : "Vente #53", "Achat #31", "Aucune"
+
+            $fields[] = TextField::new('nomBeneficiaire', 'Nom')
+                ->onlyOnIndex()
+                ->setSortable(false);
+            // EasyAdmin utilisera automatiquement getNomBeneficiaire() de l'entité
+        }
+
+        if ($pageName === Crud::PAGE_DETAIL) {
+            // Version avec HTML seulement pour la page de détail
+            $fields[] = TextField::new('commandeAssociee', 'Commande associée')
+                ->onlyOnDetail()
                 ->renderAsHtml()
                 ->formatValue(function ($value, $entity) {
                     if ($entity->getCommandeVente()) {
@@ -114,6 +122,11 @@ class PaiementCrudController extends AbstractCrudController
                     return 'Aucune';
                 })
                 ->setSortable(false);
+
+            $fields[] = TextField::new('resumePaiements')
+                ->setLabel('Historique')
+                ->setTemplatePath('admin/paiement/_resume.html.twig')
+                ->onlyOnDetail();
         }
 
         // Champs pour création / édition
@@ -141,23 +154,6 @@ class PaiementCrudController extends AbstractCrudController
             ]);
         }
 
-        // Affichage du nom du bénéficiaire dans l'index
-        if ($pageName === Crud::PAGE_INDEX) {
-            $fields[] = AssociationField::new('client')
-                ->setLabel('Nom')
-                ->formatValue(function ($value, $entity) {
-                    return $entity->getBeneficiaire();
-                });
-        }
-
-        // Affichage de l’historique en détail
-        if ($pageName === Crud::PAGE_DETAIL) {
-            $fields[] = TextField::new('resumePaiements')
-                ->setLabel('Historique')
-                ->setTemplatePath('admin/paiement/_resume.html.twig')
-                ->onlyOnDetail();
-        }
-
         return $fields;
     }
 
@@ -167,30 +163,22 @@ class PaiementCrudController extends AbstractCrudController
             ->add(Crud::PAGE_INDEX, Action::DETAIL);
     }
 
-    // Méthode pour persister un paiement et vérifier la commande associée
     public function persistEntity(EntityManagerInterface $entityManager, $entityInstance): void
     {
         parent::persistEntity($entityManager, $entityInstance);
-
-        // Vérification de la commande après persistance du paiement
         $this->verifierCommandePayee($entityInstance, $entityManager);
     }
 
-    // Méthode pour mettre à jour un paiement et vérifier la commande associée
     public function updateEntity(EntityManagerInterface $entityManager, $entityInstance): void
     {
         parent::updateEntity($entityManager, $entityInstance);
-
-        // Vérification de la commande après mise à jour du paiement
         $this->verifierCommandePayee($entityInstance, $entityManager);
     }
 
-    // Vérifie si la commande est payée
     private function verifierCommandePayee(Paiement $paiement, EntityManagerInterface $entityManager): void
     {
         $commande = null;
 
-        // Vérifie si le paiement est associé à une commande d'achat ou une commande de vente
         if ($paiement->getCommandeAchat()) {
             $commande = $paiement->getCommandeAchat();
         } elseif ($paiement->getCommandeVente()) {
@@ -198,11 +186,9 @@ class PaiementCrudController extends AbstractCrudController
         }
 
         if ($commande) {
-            // Calcul du montant total de la commande
-            $montantTotalCommande = $commande->getTotalCommande(); // Assurez-vous que la méthode getTotal() existe
+            $montantTotalCommande = $commande->getTotalCommande();
             $montantPaye = array_sum(array_map(fn($p) => $p->getMontant(), $commande->getPaiements()->toArray()));
 
-            // Si le montant payé est égal ou supérieur au montant total de la commande, on marque la commande comme payée
             if ($montantPaye >= $montantTotalCommande) {
                 $commande->setEtat('payée');
                 $entityManager->persist($commande);
@@ -213,7 +199,8 @@ class PaiementCrudController extends AbstractCrudController
 
     public function configureAssets(Assets $assets): Assets
     {
-        return parent::configureAssets($assets)
-            ->addJsFile('build/paiement.js');
+        // TEMPORAIREMENT: désactiver le JS pour tester
+        return parent::configureAssets($assets);
+        // ->addJsFile('build/paiement.js');
     }
 }

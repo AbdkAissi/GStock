@@ -169,7 +169,7 @@ class CommandeAchatCrudController extends AbstractCrudController
                 $historique->setProduit($produit);
                 $historique->setQuantite($quantite);
                 $historique->setDate(new \DateTimeImmutable());
-                $historique->setType('achat');
+                $historique->setOperationType('achat');
                 $historique->setCommentaire('Commande achat #' . $entityInstance->getId());
                 $em->persist($historique);
             }
@@ -205,7 +205,7 @@ class CommandeAchatCrudController extends AbstractCrudController
                     $historique->setProduit($produit);
                     $historique->setQuantite($difference);
                     $historique->setDate(new \DateTimeImmutable());
-                    $historique->setType('modification');
+                    $historique->setOperationType('achat');
                     $historique->setCommentaire('Modification commande achat #' . $entityInstance->getId());
                     $em->persist($historique);
                 }
@@ -226,7 +226,7 @@ class CommandeAchatCrudController extends AbstractCrudController
                 $historique->setProduit($produit);
                 $historique->setQuantite(-$quantite);
                 $historique->setDate(new \DateTimeImmutable());
-                $historique->setType('annulation');
+                $historique->setOperationType('achat');
                 $historique->setCommentaire('Annulation commande achat #' . $entityInstance->getId());
                 $em->persist($historique);
             }
@@ -264,7 +264,7 @@ class CommandeAchatCrudController extends AbstractCrudController
             $historique->setProduit($produit);
             $historique->setQuantite($quantite);
             $historique->setDate(new \DateTimeImmutable());
-            $historique->setType('achat');
+            $historique->setOperationType('achat');
             $historique->setCommentaire('Commande achat #' . $commande->getId());
             $this->entityManager->persist($historique);
         }

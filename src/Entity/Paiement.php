@@ -63,7 +63,7 @@ class Paiement
         return $this;
     }
     #[ORM\Column(type: 'string', length: 20)]
-    private ?string $etatPaiement = null;
+    private ?string $etatPaiement = 'en_attente';
 
 
     // Getters et setters

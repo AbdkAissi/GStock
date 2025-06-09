@@ -1,8 +1,8 @@
 // ✅ Import complet de Bootstrap avec tous les mixins disponibles
 @use "~bootstrap/scss/bootstrap" as *;
 
-// ✅ Import de Animate.css (version CSS classique)
-@use "~animate.css/animate.css";
+// ✅ Import de Animate.css (utiliser @import pour les fichiers CSS)
+@import "~animate.css/animate.css";
 
 // ✅ Si tu as un fichier personnalisé "custom.scss"
 //@import "custom";

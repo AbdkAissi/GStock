@@ -9,26 +9,35 @@
 	<table class="table table-striped">
 		<thead>
 			<tr>
-				<th>Nom du Bénéficiaire</th>
-				<th>Commande associée</th>
-				<th>Montant</th>
+				<th>ID</th>
 				<th>Date</th>
-				<th>État</th>
+				<th>Type</th>
+				<th>Méthode</th>
+				<th>Montant</th>
+				<th>Commande associée</th>
+				<th>Nom</th>
+				<th>Actions</th>
 			</tr>
 		</thead>
 		<tbody>
 			{% for paiement in paiements %}
 				<tr>
-					<td>{{ paiement.nomBeneficiaire }}</td>
-					<td>{{ paiement.commandeAssociee }}</td>
+					<td>{{ paiement.id }}</td>
+					<td>{{ paiement.date | date('d/m/Y') }}</td>
+					<td>{{ paiement.client ? 'Client' : 'Fournisseur' }}</td>
+					<td>{{ paiement.moyenPaiement }}</td>
 					<td>{{ paiement.montant | number_format(2, '.', ',') }}
 						MAD</td>
-					<td>{{ paiement.date | date('d/m/Y') }}</td>
-					<td>{{ paiement.etatPaiement }}</td>
+					<td>{{ paiement.commandeAssociee }}</td>
+					<td>{{ paiement.nomBeneficiaire }}</td>
+					<td>
+						<!-- Actions comme modifier, supprimer, etc. -->
+						<button class="btn btn-sm btn-outline-secondary">⋯</button>
+					</td>
 				</tr>
 			{% else %}
 				<tr>
-					<td colspan="5">Aucun paiement trouvé.</td>
+					<td colspan="8">Aucun paiement trouvé.</td>
 				</tr>
 			{% endfor %}
 		</tbody>
